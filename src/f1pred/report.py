@@ -131,6 +131,9 @@ transition:transform .2s cubic-bezier(.4,0,.2,1)}
 .races .ev{font:700 20px/24px var(--display);text-transform:uppercase}
 .races .meta2{color:var(--muted);font:600 14px/20px var(--body);margin:0}
 .races .when{color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;text-align:right}
+.races .when-top{display:inline-flex;align-items:center;gap:8px}
+.dot{flex:none;width:10px;height:10px;border-radius:50%;background:rgb(225,6,0)}
+.dot.over{background:var(--text)}
 .races .rbody{padding:16px;border-top:1px solid var(--rule)}
 .races .open{display:inline-block;color:var(--text);font:600 14px/20px var(--body)}
 @media(prefers-reduced-motion:reduce){.races summary::after{transition:none}}
@@ -467,6 +470,19 @@ def _is_hit(d):
 TAG_LABELS = {"scored": "post-race"}
 
 
+def _status_dot(p):
+    """A small status light for a race row: red while upcoming, white (dark in light mode) once it is over."""
+    back = p["mode"] in ("backtest", "scored")
+    label = escape(TAG_LABELS.get(p["mode"], p["mode"]))
+    return f'<span class="dot{" over" if back else ""}" role="img" aria-label="{label}" title="{label}"></span>'
+
+
+def _status_tag(p):
+    """The red "upcoming" or black and white "post-race" pill for a prediction."""
+    back = p["mode"] in ("backtest", "scored")
+    return f'<span class="tag{" back" if back else ""}">{escape(TAG_LABELS.get(p["mode"], p["mode"]))}</span>'
+
+
 def _debrief(drivers, names, evaluation, model="blend"):
     """Post-race section: the real podium next to what the model expected, plus plain-words insights."""
     def who(d):
@@ -585,7 +601,7 @@ def render_body(p: dict, evaluation=None, names=None) -> str:
     made = escape(p["created_utc"][:16].replace("T", " ")) + " UTC"
     result_added = (f'<span>Result added {escape(p["outcome_utc"][:16].replace("T", " "))} UTC</span>'
                     if p.get("outcome_utc") else "")
-    tag = f'<span class="tag{" back" if backtest else ""}">{escape(TAG_LABELS.get(p["mode"], p["mode"]))}</span>'
+    tag = _status_tag(p)
     model = p.get("model", "xgboost")  # predictions made before the blend have no "model" key
     claim = " ".join(s for s in (
         "Raw model output, not calibrated.", _baseline_line(evaluation, model),
@@ -641,7 +657,7 @@ def render_index(items, evaluation=None, names=None):
         status = f"{hits} of 3 picks on the podium" if backtest else "Waiting for the race"
         slug = f'{p["year"]}-R{p["round"]:02d}'
         rows += (f'<li><details id="{slug}"><summary><span><span class="ev">{escape(p["event"])}</span>'
-                 f'<p class="meta2">{detail}</p></span><span class="when">Round {p["round"]}, {p["year"]}<br>{status}</span></summary>'
+                 f'<p class="meta2">{detail}</p></span><span class="when"><span class="when-top">{_status_dot(p)}Round {p["round"]}, {p["year"]}</span><br>{status}</span></summary>'
                  f'<div class="rbody">{render_body(p, evaluation, names)}'
                  f'<a class="open" href="{p["year"]}_R{p["round"]:02d}.html">Open as its own page</a></div></details></li>')
     if not rows:
