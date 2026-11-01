@@ -4,7 +4,7 @@ Design system for the SlipStream prediction reports (`reports/*.html`, rendered 
 
 The look follows the Formula 1 race page (`formula1.com/en/racing/2026/united-states`). Values marked **observed** were read from that page's CSS on 2026-10-25. Values marked **decision** are SlipStream's own choices where the F1 page gives no rule.
 
-Reports stay one self-contained HTML file: no images, no icons, and no JavaScript of our own. The only external requests allowed are the web font link and the Vercel Web Analytics script (`/_vercel/insights/script.js`), which is served by the host and counts visits without cookies.
+Race reports stay one self-contained HTML file: no images, no icons, and no JavaScript of our own. The index page is the one exception: it has two small inline scripts (open a linked race, and the intro in section 7) and can load an optional car image and engine sound from `reports/assets/`. The only external requests allowed are the web font link and the Vercel Web Analytics script (`/_vercel/insights/script.js`), which is served by the host and counts visits without cookies.
 
 ## 1. Branding identity
 
@@ -287,8 +287,10 @@ Keep motion small. It supports reading; it does not decorate.
 
 Durations and easing are observed on the F1 page (`.3s`, `.15s`, `cubic-bezier(.4,0,.2,1)`).
 
+**Intro (decision, index page only).** A full-screen overlay with the wordmark, a cartoon car on a dashed road line, and a Skip button. After 0.8s the car drives left to right in 1.7s with smoke puffs behind it, then the overlay fades out in 300ms. The optional engine sound is tried when the car starts and stays silent if the browser blocks it (browsers usually allow sound only after a click). It shows once per browser session (`sessionStorage`), never with reduced motion or a `#race` link, and Escape or Skip ends it. While it shows, the page behind is `inert`. This is the one deliberate exception to the rules below.
+
 Rules:
-- No page-load fades, parallax, or looping animation.
+- No page-load fades, parallax, or looping animation, except the index intro above.
 - Animate only `width`, `background-color`, `color`. Never animate layout.
 - The F1 page has no reduced-motion rule. **SlipStream must add one:**
 

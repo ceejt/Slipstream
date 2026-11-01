@@ -130,3 +130,28 @@ def test_vercel_analytics_script_is_on_report_and_index():
     tag = '<script defer src="/_vercel/insights/script.js"></script>'
     assert tag in render(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]))
     assert tag in render_index([])
+
+
+def test_intro_is_on_the_index_only_and_draws_a_car_when_no_file_is_given(tmp_path, monkeypatch):
+    monkeypatch.setattr("f1pred.report.REPORTS", tmp_path)  # an empty folder, so no car or sound file is found
+    html = render_index([])
+    assert 'id="intro"' in html and "data-skip" in html and "ss-intro" in html and "data-start" not in html
+    assert '<svg class="car"' in html and "<audio" not in html
+    race = render(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]))
+    assert 'id="intro"' not in race and "ss-intro" not in race
+
+
+def test_intro_uses_a_car_and_sound_file_dropped_into_assets(tmp_path, monkeypatch):
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "car.png").write_bytes(b"x")
+    (tmp_path / "assets" / "engine.mp3").write_bytes(b"x")
+    monkeypatch.setattr("f1pred.report.REPORTS", tmp_path)
+    html = render_index([])
+    assert '<img class="car" src="assets/car.png" alt="">' in html
+    assert '<audio id="vroom" src="assets/engine.mp3" preload="none">' in html and '<svg class="car"' not in html
+
+
+def test_method_section_is_laid_out_as_heading_and_text_rows():
+    html = render(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]))
+    assert html.count('class="mrow"') == 5 and html.count('class="mtext"') == 5
+    assert html.count("<div") == html.count("</div>")

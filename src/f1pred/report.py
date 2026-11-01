@@ -132,18 +132,107 @@ transition:transform .2s cubic-bezier(.4,0,.2,1)}
 .races .rbody{padding:16px;border-top:1px solid var(--rule)}
 .races .open{display:inline-block;color:var(--text);font:600 14px/20px var(--body)}
 @media(prefers-reduced-motion:reduce){.races summary::after{transition:none}}
-.method{margin-top:64px;max-width:68ch}
+.method{margin-top:64px}
 .method h3{font:700 20px/24px var(--body);margin:32px 0 8px}
+.mtext{max-width:68ch}
 .method p,.method li{font:400 16px/24px var(--body);margin:0 0 12px}
 .method ul{margin:0 0 12px;padding-left:20px}
 .method li{margin-bottom:8px}
 .method .scroll{margin:16px 0;max-width:none}
 .method caption{caption-side:top;text-align:left;color:var(--muted);font:600 14px/20px var(--body);padding-bottom:8px}
-.insights{margin:16px 0 48px;padding:0 0 0 20px;max-width:68ch}
-.insights li{font:400 16px/24px var(--body);margin:0 0 8px}
-.note{color:var(--muted);font:400 14px/20px var(--body);max-width:68ch;margin:32px 0 0}
+@media(min-width:735px){.mrow{display:grid;grid-template-columns:180px minmax(0,68ch);gap:0 32px;
+border-top:1px solid var(--rule);margin-top:24px;padding-top:24px}
+.method h3{margin:0}.mtext>:last-child{margin-bottom:0}}
+.insights{margin:16px 0 48px;padding:0 0 0 20px}
+.insights li{font:400 16px/24px var(--body);margin:0 0 8px;break-inside:avoid}
+@media(min-width:735px){.insights{column-count:2;column-gap:40px}}
+.note{color:var(--muted);font:400 14px/20px var(--body);margin:32px 0 0}
+.intro{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;
+gap:8px;padding:24px 0;background:var(--bg);transition:opacity .3s cubic-bezier(.4,0,.2,1)}
+.intro-pending .intro{display:flex}
+.intro-pending body{overflow:hidden}
+.intro.done{opacity:0;pointer-events:none}
+.intro-title{font:900 40px/44px var(--display);text-transform:uppercase;margin:0}
+.intro-sub{color:var(--muted);font:600 14px/20px var(--body);margin:0 0 24px}
+.track{position:relative;width:100%;height:110px;overflow:hidden}
+.track::after{content:"";position:absolute;left:0;right:0;bottom:10px;height:2px;
+background:repeating-linear-gradient(90deg,var(--rule) 0 24px,transparent 24px 40px)}
+.rig{position:absolute;left:calc(50% - 80px);bottom:6px;width:160px}
+.rig .car{display:block;width:160px;height:auto}
+.go .rig{animation:drive 1.7s linear forwards}
+@keyframes drive{0.00%{transform:translate3d(0.00vw,0px,0) rotate(-2.2deg)}7.14%{transform:translate3d(7.14vw,-4px,0) rotate(1.6deg)}14.29%{transform:translate3d(14.29vw,-1px,0) rotate(-1.2deg)}21.43%{transform:translate3d(21.43vw,-5px,0) rotate(2.0deg)}28.57%{transform:translate3d(28.57vw,0px,0) rotate(-2.2deg)}35.71%{transform:translate3d(35.71vw,-4px,0) rotate(1.6deg)}42.86%{transform:translate3d(42.86vw,-1px,0) rotate(-1.2deg)}50.00%{transform:translate3d(50.00vw,-5px,0) rotate(2.0deg)}57.14%{transform:translate3d(57.14vw,0px,0) rotate(-2.2deg)}64.29%{transform:translate3d(64.29vw,-4px,0) rotate(1.6deg)}71.43%{transform:translate3d(71.43vw,-1px,0) rotate(-1.2deg)}78.57%{transform:translate3d(78.57vw,-5px,0) rotate(2.0deg)}85.71%{transform:translate3d(85.71vw,0px,0) rotate(-2.2deg)}92.86%{transform:translate3d(92.86vw,-4px,0) rotate(1.6deg)}100.00%{transform:translate3d(100.00vw,-1px,0) rotate(-1.2deg)}}
+.rig .car{filter:drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+.smoke{position:absolute;left:0;bottom:2px;width:0;height:0}
+.smoke i{position:absolute;left:0;bottom:0;width:26px;height:26px;border-radius:50%;background:var(--muted);opacity:0;filter:blur(6px)}
+.go .smoke i{animation:puff .8s ease-out infinite}
+.smoke i:nth-child(2){animation-delay:.14s;width:32px;height:32px}
+.smoke i:nth-child(3){animation-delay:.28s}
+.smoke i:nth-child(4){animation-delay:.42s;width:38px;height:38px}
+.smoke i:nth-child(5){animation-delay:.56s;width:30px;height:30px}
+@keyframes puff{0%{opacity:0;transform:translate(0,0) scale(.3)}25%{opacity:.4}100%{opacity:0;transform:translate(-100px,-26px) scale(2.2)}}
+.intro-actions{margin-top:24px}
+.skip{background:none;color:var(--muted);border:1px solid var(--rule);border-radius:4px;padding:8px 16px;cursor:pointer;
+font:600 14px/24px var(--body);transition:background-color .15s cubic-bezier(.4,0,.2,1)}
+.skip:hover{background:var(--surface-2)}
+@media(min-width:735px){.intro-title{font-size:56px;line-height:60px}.rig{left:calc(50% - 130px);width:260px}.rig .car{width:260px}.track{height:150px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 """
+
+# Optional intro on the index page. It is shown once per browser session, never with
+# reduced motion or a #race link. The car drives off by itself; the sound is tried and
+# skipped quietly if the browser blocks it. A car or sound file dropped in reports/assets/
+# (car.svg|png|webp, engine.mp3|ogg|wav|m4a) replaces the drawn car and adds the sound.
+INTRO_HEAD = ('<script>try{if(!sessionStorage.getItem("ss-intro")&&!location.hash'
+              '&&!matchMedia("(prefers-reduced-motion:reduce)").matches)'
+              'document.documentElement.classList.add("intro-pending")}catch(e){}</script>')
+
+PLACEHOLDER_CAR = (
+    '<svg class="car" viewBox="0 0 240 90" aria-hidden="true">'
+    '<rect x="14" y="22" width="32" height="7" rx="2" fill="#4A4A52"/><rect x="14" y="22" width="3" height="24" fill="#4A4A52"/>'
+    '<rect x="27" y="29" width="4" height="18" fill="#4A4A52"/>'
+    '<path d="M26 52 L46 44 L108 40 L146 34 L176 44 L232 54 L232 61 L28 62 Z" fill="#E10600"/>'
+    '<path d="M70 42 L96 24 L112 24 L114 42 Z" fill="#CA0500"/>'
+    '<path d="M60 55 L172 51" stroke="#FFFFFF" stroke-width="3" fill="none"/>'
+    '<circle cx="127" cy="31" r="9" fill="#FFD400"/><rect x="123" y="28" width="11" height="6" rx="2" fill="#111"/>'
+    '<path d="M114 41 Q124 22 144 37" stroke="#111" stroke-width="3" fill="none"/>'
+    '<rect x="204" y="62" width="34" height="6" rx="2" fill="#4A4A52"/>'
+    '<circle cx="62" cy="64" r="19" fill="#222" stroke="#8A8A92" stroke-width="2"/><circle cx="62" cy="64" r="7" fill="#DDD"/>'
+    '<circle cx="192" cy="66" r="16" fill="#222" stroke="#8A8A92" stroke-width="2"/><circle cx="192" cy="66" r="6" fill="#DDD"/>'
+    '</svg>')
+
+INTRO_SCRIPT = (
+    '<script>(function(){var h=document.documentElement,o=document.getElementById("intro");'
+    'if(!o||!h.classList.contains("intro-pending"))return;'
+    'var m=document.querySelector("main"),a=document.getElementById("vroom"),t,'
+    'k=o.querySelector("[data-skip]");'
+    'm.inert=true;k.focus();'
+    'function end(){clearTimeout(t);try{sessionStorage.setItem("ss-intro","1")}catch(e){}'
+    'o.classList.add("done");m.inert=false;setTimeout(function(){h.classList.remove("intro-pending")},350)}'
+    'function run(sound){clearTimeout(t);if(o.classList.contains("go"))return;o.classList.add("go");'
+    'if(sound&&a){try{a.play().catch(function(){})}catch(e){}}t=setTimeout(end,1900)}'
+        'k.onclick=function(){if(a)a.pause();end()};'
+    'document.addEventListener("keydown",function(e){if(e.key==="Escape"){if(a)a.pause();end()}});'
+    't=setTimeout(function(){run(true)},800)})()</script>')
+
+
+def _asset(stem, exts):
+    """Relative URL of reports/assets/<stem>.<ext> if the file exists, else None."""
+    for ext in exts:
+        if (REPORTS / "assets" / f"{stem}.{ext}").exists():
+            return f"assets/{stem}.{ext}"
+    return None
+
+
+def _intro():
+    """Overlay markup for the index page: a parked car that drives off by itself, and a Skip button."""
+    car_src = _asset("car", ("svg", "png", "webp"))
+    car = f'<img class="car" src="{car_src}" alt="">' if car_src else PLACEHOLDER_CAR
+    sound_src = _asset("engine", ("mp3", "ogg", "wav", "m4a"))
+    audio = f'<audio id="vroom" src="{sound_src}" preload="none"></audio>' if sound_src else ""
+    return ('<div class="intro" id="intro" role="dialog" aria-modal="true" aria-label="SlipStream intro">'
+            '<p class="intro-title">SlipStream</p><p class="intro-sub">Formula 1 podium predictions</p>'
+            f'<div class="track"><div class="rig"><span class="smoke" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>{car}</div></div>'
+            f'<div class="intro-actions"><button type="button" class="skip" data-skip>Skip</button></div>{audio}</div>')
 
 FINISHED = re.compile(r"Finished|Lap")
 
@@ -287,7 +376,7 @@ def _method_html(ev):
                    "That is why the top of each page says so.</p>")
     return f"""<section class="method" aria-labelledby="how">
 <h2 class="label" id="how">How it works</h2>
-<h3>What the model looks at</h3>
+<div class="mrow"><h3>What the model looks at</h3><div class="mtext">
 <p>For every driver in a race, the model gets a short list of facts that were known before the start:</p>
 <ul>
 <li>Where the driver starts, where they qualified, and how far they were from the pole time.</li>
@@ -296,20 +385,25 @@ def _method_html(ev):
 <li>How often cars retire at this circuit, how many places drivers usually gain or lose there, whether it is a street circuit, and its altitude.</li>
 </ul>
 <p>Nothing from the race itself is ever used. That is the one rule the project is built around: a prediction for a race only uses what was known before that race.</p>
-<h3>How it turns facts into a percentage</h3>
+</div></div>
+<div class="mrow"><h3>How it turns facts into a percentage</h3><div class="mtext">
 <p>The model is XGBoost. It builds many small decision trees. Each tree asks simple questions, like "does this driver start in the top three?" or "has this team been scoring well?", and nudges the answer a little. Together, the trees settle on one number.</p>
 <p>To learn, the model looks at every earlier race. For each driver it sees the facts above and whether they finished on the podium (the top three). Over time it learns which combinations of facts usually lead to a podium. For a new race, it gives each driver a number from 0% to 100%: how likely that driver is to finish in the top three, judging by how similar drivers did before. It is not a simulation of the race.</p>
 <p>Each driver gets their own number, and a podium has three places, so across the whole field the numbers add up to around 300%, not 100%. A driver at 80% is not "80% to win". It means the model thinks a podium is very likely.</p>
-<h3>Why each pick has reasons</h3>
+</div></div>
+<div class="mrow"><h3>Why each pick has reasons</h3><div class="mtext">
 <p>Under each of the three picks you see the three facts that moved the number most. They come from a method called SHAP. A plus sign means the fact raised the driver's chance. A minus sign means it lowered it. The strongest comes first.</p>
-<h3>How it is checked</h3>
+</div></div>
+<div class="mrow"><h3>How it is checked</h3><div class="mtext">
 <p>A model can look clever by accident if it has already seen the answers. So every race is tested like this: pretend it is the day before that race, teach the model only with earlier races, make the predictions, then compare them with what really happened. This is called walk-forward testing, and it is repeated for every race after the first five.</p>
 <p>The model is also compared with two simple guesses. One says the first three on the grid will finish on the podium. The other is a basic formula that only looks at starting position. If the model cannot beat these, it has not added anything useful.</p>
 {_method_table(ev)}
 <p>Top-3 overlap is the share of the real podium drivers that were in the model's top three picks. Exact podium counts the races where all three picks were right. Brier score and log loss judge the percentages themselves. For both of those, lower is better.</p>
-{verdict}<h3>What it does not know</h3>
+{verdict}</div></div>
+<div class="mrow"><h3>What it does not know</h3><div class="mtext">
 <p>It does not know about grid penalties, because it uses the qualifying order. It also knows nothing about weather, tyre choices, safety cars or car upgrades, and it has only a few seasons of results, so some circuits have little history. The percentages are raw model output. They have not been checked for calibration, so a "70%" may not come true seven times in ten.</p>
 <p>Treat the numbers as a ranking of who looks strongest, not as a promise. Results and qualifying come from the Jolpica F1 API.</p>
+</div></div>
 </section>"""
 
 
@@ -522,7 +616,7 @@ def render_index(items, evaluation=None, names=None):
     claim = " ".join(s for s in ("Raw model output, not calibrated.", _baseline_line(evaluation)) if s)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SlipStream</title>{FAVICON}{FONT_LINK}{ANALYTICS}<style>{CSS}</style></head><body><main>
+<title>SlipStream</title>{FAVICON}{FONT_LINK}{ANALYTICS}{INTRO_HEAD}<style>{CSS}</style></head><body>{_intro()}<main>
 {_top()}
 <h1>Formula 1 podium predictions</h1>
 <p class="claim">Made after qualifying and saved before the race, then compared with the result. {escape(claim)}</p>
@@ -531,7 +625,7 @@ def render_index(items, evaluation=None, names=None):
 <script>(function(){{var d=document.getElementById(location.hash.slice(1));if(d&&d.tagName==="DETAILS")d.open=true}})()</script>
 {_method_html(evaluation)}
 {CREDIT}
-</main></body></html>"""
+</main>{INTRO_SCRIPT}</body></html>"""
 
 
 def write_index(fallback=None, names=None):

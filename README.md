@@ -15,6 +15,15 @@ Podium prediction with one rule: a feature for race N only uses what is known be
     .venv/bin/python -m f1pred.outcome                      # after the race: adds the result beside the saved prediction
     .venv/bin/pytest                                       # leakage tests
 
+## Index intro
+
+The index page opens with a short intro: a cartoon car drives across by itself with smoke behind it, once per browser session, and a Skip button ends it. It draws its own car and plays no sound by default. To use your own, put the files in `reports/assets/` and rebuild the pages (`.venv/bin/python -c "from f1pred.report import write_index; write_index()"`; any `predict` run does it too):
+
+- `car.svg`, `car.png` or `car.webp`: a side view facing right
+- `engine.mp3`, `.ogg`, `.wav` or `.m4a`: a short clip (1 to 3 seconds), tried when the car starts (browsers often block sound before a visitor has clicked anything on the site, so it may stay silent for new visitors)
+
+Check that you are allowed to use each file. The intro is skipped for reduced motion and for links to a race.
+
 ## Layout
 - `src/f1pred/jolpica.py`: small Jolpica API client with paging, rate limiting and a disk cache
 - `src/f1pred/fetch.py`: Jolpica to `data/raw/` (results, qualifying). No weather or safety car data yet
