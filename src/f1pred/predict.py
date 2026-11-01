@@ -2,12 +2,14 @@
 
 Usage: python -m f1pred.predict 2024 16
        python -m f1pred.predict 2026 18 --grid ANT,RUS,VER,...
+       python -m f1pred.predict 2026 18 --start-grid ANT,VER,RUS,...
 If the race is already in data/raw/results.csv it is a backtest (the actual result
 is stored next to the prediction). Otherwise the qualifying result is fetched from
 Jolpica and used as the grid. If Jolpica does not have it yet, pass the grid
 yourself with --grid (driver codes in qualifying order). Training always uses races
 strictly before the target race.
-Note: the grid is the qualifying order, so grid penalties are not reflected.
+--start-grid is the official starting order after penalties (pit-lane starters last).
+Without it the starting grid is the qualifying order, so grid penalties are not reflected.
 """
 import argparse
 import json
@@ -19,7 +21,7 @@ import shap
 
 from . import jolpica
 from .config import EVALUATION, PREDICTIONS, RESULTS_CSV
-from .evaluate import make_model
+from .evaluate import Blend
 from .fetch import _code, _seconds
 from .features import FEATURES, build
 
@@ -37,10 +39,10 @@ def predict_frame(df: pd.DataFrame, race_id: int, min_train_races: int = MIN_TRA
 
     med = train[FEATURES].median(numeric_only=True)
     Xtr, Xte = train[FEATURES].fillna(med), test[FEATURES].fillna(med)
-    model = make_model().fit(Xtr, train["podium"])
+    model = Blend().fit(Xtr, train["podium"])
     test["p_podium"] = model.predict_proba(Xte)[:, 1]
 
-    contrib = shap.TreeExplainer(model).shap_values(Xte)
+    contrib = shap.TreeExplainer(model.xgb).shap_values(Xte)  # reasons explain the tree half of the blend
     reasons = []
     for i in range(len(test)):
         order = np.argsort(-np.abs(contrib[i]))[:3]
@@ -50,8 +52,21 @@ def predict_frame(df: pd.DataFrame, race_id: int, min_train_races: int = MIN_TRA
     return test.sort_values("p_podium", ascending=False)
 
 
-def _upcoming_rows(year: int, rnd: int, results: pd.DataFrame, grid=None) -> pd.DataFrame:
-    """Rows for a race that has not been run: one per driver, grid from qualifying."""
+def _start_positions(codes, start_grid):
+    """Starting position per driver code from the official grid, or None to use qualifying."""
+    if not start_grid:
+        return None
+    if len(set(start_grid)) != len(start_grid):
+        raise ValueError("--start-grid lists a driver more than once")
+    missing, extra = set(codes) - set(start_grid), set(start_grid) - set(codes)
+    if missing or extra:
+        raise ValueError(f"--start-grid must list the same drivers as qualifying; missing {sorted(missing)}, unknown {sorted(extra)}")
+    return {c: i + 1 for i, c in enumerate(start_grid)}
+
+
+def _upcoming_rows(year: int, rnd: int, results: pd.DataFrame, grid=None, start_grid=None) -> pd.DataFrame:
+    """Rows for a race that has not been run: one per driver. Qualifying sets quali_pos;
+    the starting grid is the qualifying order unless start_grid (official, with penalties) is given."""
     sched = jolpica.get(f"{year}/{rnd}", year)["RaceTable"]["Races"]
     if not sched:
         raise ValueError(f"{year} round {rnd} is not on the calendar")
@@ -75,20 +90,21 @@ def _upcoming_rows(year: int, rnd: int, results: pd.DataFrame, grid=None) -> pd.
             quali.append({"code": _code(x["Driver"]), "team": x["Constructor"]["name"],
                           "pos": int(x["position"]), "time": times[0] if times else np.nan})
 
+    start = _start_positions([q["code"] for q in quali], start_grid)
     return pd.DataFrame({
         "Abbreviation": [q["code"] for q in quali], "TeamName": [q["team"] for q in quali],
-        "GridPosition": [q["pos"] for q in quali], "Position": np.nan,
+        "GridPosition": [start[q["code"]] if start else q["pos"] for q in quali], "Position": np.nan,
         "Status": "Unknown", "Points": 0.0,
         "quali_pos": [q["pos"] for q in quali], "quali_time_s": [q["time"] for q in quali],
         "year": year, "round": rnd, "event": event, "location": location})
 
 
-def run(year: int, rnd: int, grid=None) -> dict:
+def run(year: int, rnd: int, grid=None, start_grid=None) -> dict:
     results = pd.read_csv(RESULTS_CSV)
     race_id = year * 100 + rnd
     done = ((results["year"] == year) & (results["round"] == rnd)).any()
     if not done:
-        results = pd.concat([results, _upcoming_rows(year, rnd, results, grid)], ignore_index=True)
+        results = pd.concat([results, _upcoming_rows(year, rnd, results, grid, start_grid)], ignore_index=True)
 
     df = build(results)
     out = predict_frame(df, race_id)
@@ -97,6 +113,8 @@ def run(year: int, rnd: int, grid=None) -> dict:
         "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "year": year, "round": rnd, "event": str(first["event"]), "location": str(first["location"]),
         "mode": "backtest" if done else "upcoming",
+        "model": "blend",
+        "official_grid": bool(start_grid) and not done,
         "trained_on_races": int(df[(df["race_id"] < race_id) & df["position"].notna()]["race_id"].nunique()),
         "evaluation": json.loads(EVALUATION.read_text()) if EVALUATION.exists() else None,
         "drivers": [{
@@ -123,5 +141,7 @@ if __name__ == "__main__":
     ap.add_argument("year", type=int)
     ap.add_argument("round", type=int)
     ap.add_argument("--grid", help="driver codes in qualifying order, comma separated")
+    ap.add_argument("--start-grid", help="driver codes in the official starting order (after penalties), comma separated")
     a = ap.parse_args()
-    run(a.year, a.round, a.grid.upper().split(",") if a.grid else None)
+    split = lambda v: v.upper().split(",") if v else None
+    run(a.year, a.round, split(a.grid), split(a.start_grid))

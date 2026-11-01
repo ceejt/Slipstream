@@ -1,5 +1,5 @@
 {
-  "created_utc": "2026-10-26T14:46:24+00:00",
+  "created_utc": "2026-11-01T19:22:11+00:00",
   "races": 83,
   "through": {
     "year": 2026,
@@ -22,10 +22,17 @@
     },
     "xgboost": {
       "races": 83.0,
-      "top3_overlap": 0.683,
-      "exact_podium": 0.229,
-      "brier": 0.071,
-      "logloss": 0.233
+      "top3_overlap": 0.675,
+      "exact_podium": 0.217,
+      "brier": 0.07,
+      "logloss": 0.231
+    },
+    "blend": {
+      "races": 83.0,
+      "top3_overlap": 0.691,
+      "exact_podium": 0.253,
+      "brier": 0.066,
+      "logloss": 0.214
     }
   }
 }

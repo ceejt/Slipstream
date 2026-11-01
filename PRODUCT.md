@@ -13,7 +13,7 @@ Not written for recruiters or interviewers. Reports should explain the model to 
 
 ## Product Purpose
 
-SlipStream predicts the Formula 1 podium (top 3 finishers) for one race at a time and publishes each prediction as a static HTML report. The main job of a report is to be a public pre-race prediction log: a dated record of what the model said before the race, with the actual result added beside it afterward.
+Slipstream predicts the Formula 1 podium (top 3 finishers) for one race at a time and publishes each prediction as a static HTML report. The main job of a report is to be a public pre-race prediction log: a dated record of what the model said before the race, with the actual result added beside it afterward.
 
 Success is a record that can be checked. A reader can see when a prediction was made, how many races the model trained on, how each driver's probability was reached, and, after the race, what happened.
 
@@ -41,13 +41,13 @@ Honest evaluation. Features for race N use only information known before race N.
 
 ## Brand Commitments
 
-- Name: SlipStream, shown as a plain text wordmark.
+- Name: Slipstream, shown as a plain text wordmark.
 - Voice: plain and factual. No promotional claims about accuracy that the evaluation does not support.
 
 ## Evidence on Hand
 
 - `data/predictions/2026_R18.json` and `reports/2026_R18.html`: the pre-race prediction for the 2026 United States GP (VER, ANT, HAD as the top three by probability).
-- Walk-forward evaluation on 82 races (2023 to 2026 data, saved in `data/evaluation.json`): XGBoost has a top-3 overlap of 0.683 against 0.671 for both baselines, a log loss of 0.234 against 0.239, but a worse Brier score (0.071 against 0.068) and a lower exact-podium rate (0.232 against 0.244). Mixed, so the model has not clearly beaten the baseline.
+- Walk-forward evaluation on 83 races (2023 to 2026 data, saved in `data/evaluation.json`): the model is now an average of a 6-feature logistic regression and a regularised XGBoost. It has a top-3 overlap of 0.691 against 0.671 for both grid baselines, an exact-podium rate of 0.253 against 0.241, a Brier score of 0.066 against 0.068 and a log loss of 0.214 against 0.238. The earlier plain XGBoost scored 0.675, 0.217, 0.070 and 0.231. The gaps are small and a bootstrap over races does not rule out chance, so the model has not clearly beaten the baseline. Predictions saved before the blend (R18, R19) were made by the plain XGBoost.
 - Tests that check features do not use the current race's outcome.
 - Absent, so future work must not invent them: a track record of scored predictions across many races, calibration results, user counts, and any published URL.
 

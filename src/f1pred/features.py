@@ -11,7 +11,7 @@ import pandas as pd
 from .config import CIRCUITS_CSV, FORM_WINDOW, RESULTS_CSV
 
 FEATURES = [
-    "grid", "quali_pos", "quali_gap_s",
+    "grid", "quali_pos", "quali_gap_s", "grid_penalty",
     "driver_form_pos", "driver_dnf_rate", "team_form_pts", "team_dnf_rate",
     "circuit_dnf_rate", "circuit_pos_gain",
     "altitude_m", "is_street",
@@ -37,6 +37,8 @@ def build(results=None, races=None, circuits=None) -> pd.DataFrame:
 
     df["position"] = pd.to_numeric(df["Position"], errors="coerce")
     df["grid"] = pd.to_numeric(df["GridPosition"], errors="coerce").replace(0, 20)  # 0 = pit lane
+    # places lost between qualifying and the start: positive means a penalty or a car sent to the pit lane
+    df["grid_penalty"] = df["grid"] - df["quali_pos"]
     df["podium"] = (df["position"] <= 3).astype(int)
     df["dnf"] = (~df["Status"].astype(str).str.contains("Finished|Lap", regex=True)).astype(int)
     df["pos_gain"] = df["grid"] - df["position"]

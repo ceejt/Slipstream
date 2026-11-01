@@ -1,14 +1,14 @@
 # DESIGN.md
 
-Design system for the SlipStream prediction reports (`reports/*.html`, rendered by `src/f1pred/report.py`).
+Design system for the Slipstream prediction reports (`reports/*.html`, rendered by `src/f1pred/report.py`).
 
-The look follows the Formula 1 race page (`formula1.com/en/racing/2026/united-states`). Values marked **observed** were read from that page's CSS on 2026-10-25. Values marked **decision** are SlipStream's own choices where the F1 page gives no rule.
+The look follows the Formula 1 race page (`formula1.com/en/racing/2026/united-states`). Values marked **observed** were read from that page's CSS on 2026-10-25. Values marked **decision** are Slipstream's own choices where the F1 page gives no rule.
 
 Race reports stay one self-contained HTML file: no images, no icons, and no JavaScript of our own. The index page is the one exception: it has two small inline scripts (open a linked race, and the intro in section 7) and can load an optional car image and engine sound from `reports/assets/`. The only external requests allowed are the web font link and the Vercel Web Analytics script (`/_vercel/insights/script.js`), which is served by the host and counts visits without cookies.
 
 ## 1. Branding identity
 
-**Name:** SlipStream. The brand is a plain text wordmark. Colors and type style are the only things borrowed from the F1 page.
+**Name:** Slipstream. The brand is a plain text wordmark. Colors and type style are the only things borrowed from the F1 page.
 
 **Design principle: a timing screen, not a dashboard.**
 The page should read like a live timing tower: dense, flat, tabular, and fast to scan. The following rules keep it from looking like a generic generated page:
@@ -139,7 +139,7 @@ Match team names with a lookup table in `report.py` (for example `"Red Bull"` an
 | Body | Titillium Web (300 to 700, with italics) | Open source (SIL OFL) |
 | Technical data (times, gaps) | KH Interference F1 (400, 700) | Proprietary |
 
-### What SlipStream can use
+### What Slipstream can use
 The Formula1 and KH Interference fonts are licensed to F1 and are not free to embed or link. Do not copy their font files. **Titillium Web is the one F1 font that is open source, and it is the same face F1 uses for body text.**
 
 | Role | Stack | Weight |
@@ -271,7 +271,7 @@ A reading section at the bottom of every report and of the index page, above the
 - Text: 16px on 24px, regular weight, at most 68 characters wide. One short list (what the model looks at). No images, diagrams or icons.
 - Content, in order: what the model looks at; how it turns facts into a percentage; why each pick has reasons; how it is checked; what it does not know.
 - Voice: plain and direct, no formulas. Terms are explained the first time they appear (podium, walk-forward testing, Brier score, log loss, SHAP).
-- The comparison table (first three on the grid, a formula on grid position, the SlipStream model) is built from the saved `data/evaluation.json`, so its numbers and the verdict sentence under it cannot drift from the evaluation. With no saved evaluation, the table and verdict are left out and the rest still shows.
+- The comparison table (first three on the grid, a formula on grid position, the Slipstream model) is built from the saved `data/evaluation.json`, so its numbers and the verdict sentence under it cannot drift from the evaluation. With no saved evaluation, the table and verdict are left out and the rest still shows.
 - When the model changes (new features, a DNF model, weather), the text in `_method_html` must change with it. The tests check that the section and its table render, not that the prose is still true.
 
 ## 7. Animations
@@ -292,7 +292,7 @@ Durations and easing are observed on the F1 page (`.3s`, `.15s`, `cubic-bezier(.
 Rules:
 - No page-load fades, parallax, or looping animation, except the index intro above.
 - Animate only `width`, `background-color`, `color`. Never animate layout.
-- The F1 page has no reduced-motion rule. **SlipStream must add one:**
+- The F1 page has no reduced-motion rule. **Slipstream must add one:**
 
 ```css
 @media (prefers-reduced-motion: reduce) {

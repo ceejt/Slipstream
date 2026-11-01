@@ -51,7 +51,9 @@ padding-bottom:12px;border-bottom:1px solid var(--rule)}
 .back{color:var(--text);text-decoration:none;border:1px solid var(--rule);border-radius:4px;padding:4px 12px;
 font:600 14px/20px var(--body);transition:background-color .15s cubic-bezier(.4,0,.2,1)}
 .back:hover{background:var(--surface-2)}
-.brand a{color:inherit;text-decoration:none}
+.brand a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.brand .logo{flex:none;width:.8em;height:.8em}
+.brand .hl{stroke:var(--text)}
 .brand a:hover{text-decoration:underline;text-underline-offset:4px}
 h1{font:900 32px/38px var(--display);text-transform:uppercase;text-wrap:balance;margin:0 0 12px}
 @media(min-width:735px){h1{font-size:40px;line-height:44px}}
@@ -229,8 +231,8 @@ def _intro():
     car = f'<img class="car" src="{car_src}" alt="">' if car_src else PLACEHOLDER_CAR
     sound_src = _asset("engine", ("mp3", "ogg", "wav", "m4a"))
     audio = f'<audio id="vroom" src="{sound_src}" preload="none"></audio>' if sound_src else ""
-    return ('<div class="intro" id="intro" role="dialog" aria-modal="true" aria-label="SlipStream intro">'
-            '<p class="intro-title">SlipStream</p><p class="intro-sub">Formula 1 podium predictions</p>'
+    return ('<div class="intro" id="intro" role="dialog" aria-modal="true" aria-label="Slipstream intro">'
+            '<p class="intro-title">Slipstream</p><p class="intro-sub">Formula 1 podium predictions</p>'
             f'<div class="track"><div class="rig"><span class="smoke" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>{car}</div></div>'
             f'<div class="intro-actions"><button type="button" class="skip" data-skip>Skip</button></div>{audio}</div>')
 
@@ -241,8 +243,11 @@ FINISHED = re.compile(r"Finished|Lap")
 ANALYTICS = ('<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>'
              '<script defer src="/_vercel/insights/script.js"></script>')
 
+LOGO = (
+    '<svg class="logo" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M30 16C30 19.713 28.525 23.274 25.8995 25.8995C23.274 28.525 19.713 30 16 30C12.287 30 8.72601 28.525 6.1005 25.8995C3.475 23.274 2 19.713 2 16C2 12.287 3.475 8.72601 6.1005 6.1005C8.72601 3.475 12.287 2 16 2C19.713 2 23.274 3.475 25.8995 6.1005C28.525 8.72601 30 12.287 30 16Z" stroke-width="2.5" stroke="#E10600"/><path class="hl" d="M30 16C30 19.713 28.525 23.274 25.8995 25.8995C23.274 28.525 19.713 30 16 30C12.287 30 8.72601 28.525 6.1005 25.8995C3.475 23.274 2 19.713 2 16C2 12.287 3.475 8.72601 6.1005 6.1005C8.72601 3.475 12.287 2 16 2C19.713 2 23.274 3.475 25.8995 6.1005C28.525 8.72601 30 12.287 30 16Z" stroke-width="0.5"/><path d="M26 6L21 10H13C11.5 10 10.5 10.5 9.5 11.5L8.5 12.5C7 14 8 16 10 16H22C24 16 25 18 23.5 19.5L22.5 20.5C21.5 21.5 20.5 22 19 22H11L6 26" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke="#E10600"/><path class="hl" d="M26 6L21 10H13C11.5 10 10.5 10.5 9.5 11.5L8.5 12.5C7 14 8 16 10 16H22C24 16 25 18 23.5 19.5L22.5 20.5C21.5 21.5 20.5 22 19 22H11L6 26" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"/></svg>')
+
 BRAND = ('<p class="brand"><a href="https://github.com/ceejt/Slipstream" target="_blank" rel="noopener noreferrer" '
-         'aria-label="Slipstream, source code on GitHub (opens in a new tab)">Slipstream</a></p>')
+         'aria-label="Slipstream, source code on GitHub (opens in a new tab)">' + LOGO + 'Slipstream</a></p>')
 
 def _top(back=False):
     """Top bar: wordmark on the left, and on race pages a button back to the index."""
@@ -324,20 +329,27 @@ def _reasons(rs):
     return "<ul class='why' aria-label='Reasons, strongest first'>" + "".join(items) + "</ul>"
 
 
-def _beats(ev):
+def _ours(ev, model="blend"):
+    """The evaluation row for the model that made a prediction: the blend, or the plain XGBoost
+    (for predictions made before the blend existed, and for older saved evaluations)."""
+    m = ev["models"]
+    return m["blend"] if model == "blend" and "blend" in m else m["xgboost"]
+
+
+def _beats(ev, model="blend"):
     """True if the model beats both grid baselines on every key metric, False if not, None if unknown."""
     try:
         m = ev["models"]
-        x, g, o = m["xgboost"], m["grid logistic"], m["grid order"]
+        x, g, o = _ours(ev, model), m["grid logistic"], m["grid order"]
         return bool(x["brier"] < g["brier"] and x["logloss"] < g["logloss"]
                     and x["top3_overlap"] > o["top3_overlap"])
     except (KeyError, TypeError):
         return None
 
 
-def _baseline_line(ev):
+def _baseline_line(ev, model="blend"):
     """One sentence on how the model compares with grid baselines, from the saved evaluation."""
-    beat = _beats(ev)
+    beat = _beats(ev, model)
     if beat is None:
         return ""
     span = f'{ev["races"]} races through {ev["through"]["year"]} round {ev["through"]["round"]}'
@@ -346,13 +358,18 @@ def _baseline_line(ev):
     return f"{verdict} ({span})."
 
 
-def _method_table(ev):
+def _method_table(ev, model="blend"):
     """Small comparison table from the saved evaluation, or empty text if there is none."""
-    if _beats(ev) is None:
+    if _beats(ev, model) is None:
         return ""
     rows = ""
-    for key, label in (("grid order", "First three on the grid"), ("grid logistic", "Formula on grid position only"),
-                       ("xgboost", "SlipStream model")):
+    if model == "blend" and "blend" in ev["models"]:
+        lines = (("grid order", "First three on the grid"), ("grid logistic", "Formula on grid position only"),
+                 ("xgboost", "Earlier version: XGBoost alone"), ("blend", "Slipstream model"))
+    else:
+        lines = (("grid order", "First three on the grid"), ("grid logistic", "Formula on grid position only"),
+                 ("xgboost", "Slipstream model"))
+    for key, label in lines:
         m = ev["models"][key]
         pct = lambda v: "n/a" if v is None else f"{v * 100:.1f}%"
         num = lambda v: "n/a" if v is None else f"{v:.3f}"
@@ -365,12 +382,23 @@ def _method_table(ev):
             f'<tbody>{rows}</tbody></table></div>')
 
 
-def _method_html(ev):
+MODEL_TEXT = {
+    "xgboost": """<p>The model is XGBoost. It builds many small decision trees. Each tree asks simple questions, like "does this driver start in the top three?" or "has this team been scoring well?", and nudges the answer a little. Together, the trees settle on one number.</p>""",
+    "blend": """<p>The model is an average of two simpler models. The first is a logistic regression: a formula that weighs a handful of facts (where the driver starts and qualified, the gap to pole, any grid penalty, and how well the driver and team have been doing). The second is XGBoost, which builds many small decision trees that ask questions like "does this driver start in the top three?" and nudge the answer a little. Both are kept small on purpose, because there are only a few dozen races to learn from. The final number is the mean of the two.</p>""",
+}
+REASONS_TEXT = {
+    "xgboost": "They come from a method called SHAP.",
+    "blend": "They come from a method called SHAP, applied to the decision-tree half of the model. The other half is a simple formula, so the reasons describe part of the number, not all of it.",
+}
+
+
+def _method_html(ev, model="xgboost"):
     """The "How it works" section, in plain words. Numbers come from the saved evaluation."""
-    beat = _beats(ev)
+    beat = _beats(ev, model)
     verdict = ""
     if beat is True:
-        verdict = "<p>On every one of these measures the model does better than both simple guesses.</p>"
+        verdict = ("<p>On every one of these measures the model does better than both simple guesses. The gap is small, "
+                   "though, and a few dozen races is not many, so part of it could be luck.</p>")
     elif beat is False:
         verdict = ("<p>So far the model has not clearly beaten the two simple guesses, so treat its picks with care. "
                    "That is why the top of each page says so.</p>")
@@ -387,21 +415,21 @@ def _method_html(ev):
 <p>Nothing from the race itself is ever used. That is the one rule the project is built around: a prediction for a race only uses what was known before that race.</p>
 </div></div>
 <div class="mrow"><h3>How it turns facts into a percentage</h3><div class="mtext">
-<p>The model is XGBoost. It builds many small decision trees. Each tree asks simple questions, like "does this driver start in the top three?" or "has this team been scoring well?", and nudges the answer a little. Together, the trees settle on one number.</p>
+{MODEL_TEXT.get(model, MODEL_TEXT["xgboost"])}
 <p>To learn, the model looks at every earlier race. For each driver it sees the facts above and whether they finished on the podium (the top three). Over time it learns which combinations of facts usually lead to a podium. For a new race, it gives each driver a number from 0% to 100%: how likely that driver is to finish in the top three, judging by how similar drivers did before. It is not a simulation of the race.</p>
 <p>Each driver gets their own number, and a podium has three places, so across the whole field the numbers add up to around 300%, not 100%. A driver at 80% is not "80% to win". It means the model thinks a podium is very likely.</p>
 </div></div>
 <div class="mrow"><h3>Why each pick has reasons</h3><div class="mtext">
-<p>Under each of the three picks you see the three facts that moved the number most. They come from a method called SHAP. A plus sign means the fact raised the driver's chance. A minus sign means it lowered it. The strongest comes first.</p>
+<p>Under each of the three picks you see the three facts that moved the number most. {REASONS_TEXT.get(model, REASONS_TEXT["xgboost"])} A plus sign means the fact raised the driver's chance. A minus sign means it lowered it. The strongest comes first.</p>
 </div></div>
 <div class="mrow"><h3>How it is checked</h3><div class="mtext">
 <p>A model can look clever by accident if it has already seen the answers. So every race is tested like this: pretend it is the day before that race, teach the model only with earlier races, make the predictions, then compare them with what really happened. This is called walk-forward testing, and it is repeated for every race after the first five.</p>
 <p>The model is also compared with two simple guesses. One says the first three on the grid will finish on the podium. The other is a basic formula that only looks at starting position. If the model cannot beat these, it has not added anything useful.</p>
-{_method_table(ev)}
+{_method_table(ev, model)}
 <p>Top-3 overlap is the share of the real podium drivers that were in the model's top three picks. Exact podium counts the races where all three picks were right. Brier score and log loss judge the percentages themselves. For both of those, lower is better.</p>
 {verdict}</div></div>
 <div class="mrow"><h3>What it does not know</h3><div class="mtext">
-<p>It does not know about grid penalties, because it uses the qualifying order. It also knows nothing about weather, tyre choices, safety cars or car upgrades, and it has only a few seasons of results, so some circuits have little history. The percentages are raw model output. They have not been checked for calibration, so a "70%" may not come true seven times in ten.</p>
+<p>It only knows about grid penalties if the official starting grid was entered before the race. Otherwise it assumes the qualifying order. It also knows nothing about weather, tyre choices, safety cars or car upgrades, and it has only a few seasons of results, so some circuits have little history. The percentages are raw model output. They have not been checked for calibration, so a "70%" may not come true seven times in ten.</p>
 <p>Treat the numbers as a ranking of who looks strongest, not as a promise. Results and qualifying come from the Jolpica F1 API.</p>
 </div></div>
 </section>"""
@@ -439,7 +467,7 @@ def _is_hit(d):
 TAG_LABELS = {"scored": "post-race"}
 
 
-def _debrief(drivers, names, evaluation):
+def _debrief(drivers, names, evaluation, model="blend"):
     """Post-race section: the real podium next to what the model expected, plus plain-words insights."""
     def who(d):
         first, last = _names(d["driver"], names)
@@ -481,7 +509,10 @@ def _debrief(drivers, names, evaluation):
     scored = [d for d in drivers if _outcome(d) is not None]
     if scored:
         brier = sum((d["p_podium"] - float(_is_hit(d))) ** 2 for d in scored) / len(scored)
-        avg = ((evaluation or {}).get("models", {}).get("xgboost", {}) or {}).get("brier")
+        try:
+            avg = _ours(evaluation, model).get("brier")
+        except (KeyError, TypeError):
+            avg = None
         line = f"Score for this race (Brier, lower is better): {brier:.3f}."
         if avg:
             line += f" The average over earlier races is {avg:.3f}, so this one went " + ("better." if brier < avg else "worse.")
@@ -555,10 +586,12 @@ def render_body(p: dict, evaluation=None, names=None) -> str:
     result_added = (f'<span>Result added {escape(p["outcome_utc"][:16].replace("T", " "))} UTC</span>'
                     if p.get("outcome_utc") else "")
     tag = f'<span class="tag{" back" if backtest else ""}">{escape(TAG_LABELS.get(p["mode"], p["mode"]))}</span>'
+    model = p.get("model", "xgboost")  # predictions made before the blend have no "model" key
     claim = " ".join(s for s in (
-        "Raw model output, not calibrated.", _baseline_line(evaluation),
-        "Grid is the qualifying order, so penalties are not included.") if s)
-    debrief = _debrief(drivers, names, evaluation) if backtest else ""
+        "Raw model output, not calibrated.", _baseline_line(evaluation, model),
+        "Grid is the official starting order, including penalties." if p.get("official_grid")
+        else "Grid is the qualifying order, so penalties are not included.") if s)
+    debrief = _debrief(drivers, names, evaluation, model) if backtest else ""
     return f"""<p class="meta">{tag}<span>Round {p['round']}, {p['year']}</span><span>Trained on {p['trained_on_races']} earlier races</span><span>Made {made}</span>{result_added}</p>
 <p class="claim">{escape(claim)}</p>
 {summary}<h2 class="label">Highest podium probability</h2>
@@ -574,11 +607,11 @@ def render(p: dict, evaluation=None, names=None) -> str:
     evaluation = p.get("evaluation") or evaluation
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SlipStream {p['year']} {escape(p['event'])}</title>{FAVICON}{FONT_LINK}{ANALYTICS}<style>{CSS}</style></head><body><main>
+<title>Slipstream {p['year']} {escape(p['event'])}</title>{FAVICON}{FONT_LINK}{ANALYTICS}<style>{CSS}</style></head><body><main>
 {_top(True)}
 <h1>{escape(p['event'])}</h1>
 {render_body(p, evaluation, names)}
-{_method_html(evaluation)}
+{_method_html(evaluation, p.get('model', 'xgboost'))}
 {CREDIT}
 </main></body></html>"""
 
@@ -613,17 +646,18 @@ def render_index(items, evaluation=None, names=None):
                  f'<a class="open" href="{p["year"]}_R{p["round"]:02d}.html">Open as its own page</a></div></details></li>')
     if not rows:
         rows = '<li><p class="meta2" style="padding:16px">No predictions yet.</p></li>'
-    claim = " ".join(s for s in ("Raw model output, not calibrated.", _baseline_line(evaluation)) if s)
+    model = "blend" if "blend" in ((evaluation or {}).get("models") or {}) else "xgboost"
+    claim = " ".join(s for s in ("Raw model output, not calibrated.", _baseline_line(evaluation, model)) if s)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SlipStream</title>{FAVICON}{FONT_LINK}{ANALYTICS}{INTRO_HEAD}<style>{CSS}</style></head><body>{_intro()}<main>
+<title>Slipstream</title>{FAVICON}{FONT_LINK}{ANALYTICS}{INTRO_HEAD}<style>{CSS}</style></head><body>{_intro()}<main>
 {_top()}
 <h1>Formula 1 podium predictions</h1>
 <p class="claim">Made after qualifying and saved before the race, then compared with the result. {escape(claim)}</p>
 <h2 class="label">Races</h2>
 <ul class="races">{rows}</ul>
 <script>(function(){{var d=document.getElementById(location.hash.slice(1));if(d&&d.tagName==="DETAILS")d.open=true}})()</script>
-{_method_html(evaluation)}
+{_method_html(evaluation, model)}
 {CREDIT}
 </main>{INTRO_SCRIPT}</body></html>"""
 
@@ -632,7 +666,7 @@ def write_index(fallback=None, names=None):
     items = [json.loads(f.read_text()) for f in PREDICTIONS.glob("*.json")]
     items = [_apply_outcome(p, _load_outcome(p)) for p in items]
     items.sort(key=lambda p: (p["year"], p["round"]), reverse=True)
-    ev = (items[0].get("evaluation") if items else None) or fallback
+    ev = fallback or (items[0].get("evaluation") if items else None)  # the index always shows the latest evaluation
     path = REPORTS / "index.html"
     path.write_text(render_index(items, ev, names))
     return path

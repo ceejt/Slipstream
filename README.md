@@ -1,4 +1,4 @@
-# SlipStream
+# Slipstream
 
 Leak-free F1 podium prediction.
 

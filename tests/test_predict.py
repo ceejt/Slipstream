@@ -114,7 +114,7 @@ def test_outcome_fills_results_without_changing_the_saved_prediction():
 
 
 def test_wordmark_links_to_the_repo_on_report_and_index():
-    link = 'href="https://github.com/ceejt/SlipStream"'
+    link = 'href="https://github.com/ceejt/Slipstream"'
     html = render(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]))
     assert link in html and 'rel="noopener noreferrer"' in html
     assert link in render_index([])
@@ -155,3 +155,36 @@ def test_method_section_is_laid_out_as_heading_and_text_rows():
     html = render(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]))
     assert html.count('class="mrow"') == 5 and html.count('class="mtext"') == 5
     assert html.count("<div") == html.count("</div>")
+
+
+def test_start_grid_gives_positions_and_rejects_bad_lists():
+    from f1pred.predict import _start_positions
+    assert _start_positions(["A", "B", "C"], None) is None
+    assert _start_positions(["A", "B", "C"], ["B", "C", "A"]) == {"B": 1, "C": 2, "A": 3}
+    for bad in (["A", "A", "B"], ["A", "B"], ["A", "B", "C", "D"]):
+        try:
+            _start_positions(["A", "B", "C"], bad)
+        except ValueError:
+            continue
+        raise AssertionError(f"{bad} should be rejected")
+
+
+def test_report_says_which_grid_it_used():
+    html = render(dict(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]), official_grid=True))
+    assert "official starting order, including penalties" in html
+    assert "qualifying order, so penalties are not included" in render(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]))
+
+
+def test_blend_and_older_predictions_each_show_their_own_method_text_and_table():
+    ev = {"races": 83, "through": {"year": 2026, "round": 18}, "models": {
+        "grid order": {"top3_overlap": .671, "exact_podium": .241, "brier": None, "logloss": None},
+        "grid logistic": {"top3_overlap": .671, "exact_podium": .241, "brier": .068, "logloss": .238},
+        "xgboost": {"top3_overlap": .675, "exact_podium": .217, "brier": .070, "logloss": .231},
+        "blend": {"top3_overlap": .691, "exact_podium": .253, "brier": .066, "logloss": .214}}}
+    base = _payload(drivers=[_driver("VER", "Red Bull", 0.8)])
+    new = render(dict(base, model="blend", evaluation=ev))
+    assert "average of two simpler models" in new and "Earlier version: XGBoost alone" in new
+    assert "Has beaten a grid-order baseline" in new and "69.1%" in new
+    old = render(dict(base, evaluation=ev))  # no "model" key: made by the plain XGBoost
+    assert "The model is XGBoost" in old and "Earlier version" not in old
+    assert "Has not yet beaten a grid-order baseline" in old and "67.5%" in old
