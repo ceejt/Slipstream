@@ -188,3 +188,16 @@ def test_blend_and_older_predictions_each_show_their_own_method_text_and_table()
     old = render(dict(base, evaluation=ev))  # no "model" key: made by the plain XGBoost
     assert "The model is XGBoost" in old and "Earlier version" not in old
     assert "Has not yet beaten a grid-order baseline" in old and "67.5%" in old
+
+
+def test_predict_frame_gives_a_win_chance_between_0_and_1():
+    df = build(*_fake(n_races=9))
+    out = predict_frame(df, int(df["race_id"].max()), min_train_races=3)
+    assert out["p_win"].between(0, 1).all()
+
+
+def test_cards_show_the_win_chance_when_saved_and_older_predictions_still_render():
+    with_win = _driver("VER", "Red Bull", 0.8)
+    with_win["p_win"] = 0.4321
+    assert "win chance 43.2%" in render(_payload(drivers=[with_win]))
+    assert "win chance" not in render(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]))

@@ -79,6 +79,7 @@ background:linear-gradient(200deg,var(--accent,var(--surface-2)) 0%,var(--card-b
 .score{margin-top:auto;padding-top:16px}
 .pct{font:700 36px/40px var(--body);margin:0;color:var(--accent,inherit);font-variant-numeric:tabular-nums}
 .sub{font:600 14px/16px var(--body);margin:0}
+.sub.win{margin-top:4px;font-variant-numeric:tabular-nums}
 .outcome{margin:0;display:flex;align-items:center;gap:8px;font:600 16px/20px var(--body)}
 .why{margin:0;padding:0;list-style:none;font:600 14px/20px var(--body)}
 .why b{display:inline-block;width:12px;font-weight:400}
@@ -559,10 +560,11 @@ def render_body(p: dict, evaluation=None, names=None) -> str:
             text = {"DNF": "Did not finish", None: "Result missing"}.get(res, f"Finished {res}")
             mark = '<span class="mark">Hit</span>' if _is_hit(d) else '<span class="mark miss">Miss</span>'
             out = f'<p class="outcome">{mark} {text}</p>'
+        win = f'<p class="sub win">win chance {d["p_win"] * 100:.1f}%</p>' if d.get("p_win") is not None else ""
         cards += (
             f'<article class="card p{i + 1}"{_card_style(d["team"])}><div class="cbody"><p class="pick">P{i + 1}</p>'
             f'<p class="team">{escape(str(d["team"]))} · {grid}</p>'
-            f'<div class="score"><p class="pct">{d["p_podium"] * 100:.1f}%</p><p class="sub">podium probability</p></div>'
+            f'<div class="score"><p class="pct">{d["p_podium"] * 100:.1f}%</p><p class="sub">podium probability</p>{win}</div>'
             f'{out}{_reasons(d["reasons"])}</div>'
             f'<div class="cname">' + (f'<p class="first">{first}</p>' if first else "")
             + f'<p class="last">{last}</p></div></article>')
