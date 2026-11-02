@@ -48,6 +48,7 @@ background:linear-gradient(200deg,var(--accent,var(--surface-2)) 0%,var(--card-b
 .score{margin-top:auto;padding-top:16px}
 .pct{font:700 36px/40px var(--body);margin:0;color:var(--accent,inherit);font-variant-numeric:tabular-nums}
 .sub{font:600 14px/16px var(--body);margin:0}
+.sub.win{margin-top:4px;font-variant-numeric:tabular-nums}
 .outcome{margin:0;display:flex;align-items:center;gap:8px;font:600 16px/20px var(--body)}
 .why{margin:0;padding:0;list-style:none;font:600 14px/20px var(--body)}
 .why b{display:inline-block;width:12px;font-weight:400}
@@ -80,14 +81,27 @@ tbody tr:hover td{background:var(--surface-2)}
 animation:grow .3s cubic-bezier(.4,0,.2,1) both;animation-delay:calc(var(--i)*30ms)}
 @keyframes grow{from{width:0}}
 .pv{flex:none;width:48px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
-.made{margin:48px 0 0;padding-top:16px;border-top:1px solid var(--rule);color:var(--muted);font:600 14px/20px var(--body)}
-.made a{color:var(--text);font-weight:700;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}
+.made{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:48px 0 0;padding-top:16px;border-top:1px solid var(--rule);color:var(--muted);font:600 14px/20px var(--body)}
+.made .gh{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:-12px -10px -12px 0;color:var(--text);text-decoration:none}
+.made .gh:hover,.made .gh:focus-visible{color:var(--muted)}
+.made a:not(.gh){color:var(--text);font-weight:700;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}
 @supports (background-clip:text) or (-webkit-background-clip:text){
-.made a{background:repeating-linear-gradient(105deg,var(--chrome-lo) 0,var(--chrome-hi) 9px,var(--chrome-lo) 18px) 0 0/300% 100%;
+.made a:not(.gh){background:repeating-linear-gradient(105deg,var(--chrome-lo) 0,var(--chrome-hi) 9px,var(--chrome-lo) 18px) 0 0/300% 100%;
 -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
 font:900 17px/20px var(--body);transition:background-position .8s cubic-bezier(.4,0,.2,1);
 filter:drop-shadow(0 1px 0 var(--chrome-edge))}
-.made a:hover,.made a:focus-visible{background-position:-9px 0}}
+.made a:not(.gh):hover,.made a:not(.gh):focus-visible{background-position:-9px 0}}
+.tabs{display:flex;gap:24px;border-bottom:1px solid var(--rule);margin:0 0 16px}
+.tabs[hidden]{display:none}
+.tab{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:14px 0;cursor:pointer;
+color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px}
+.tab:hover,.tab[aria-selected=true]{color:var(--text)}
+.tab[aria-selected=true]{border-bottom-color:var(--text)}
+.tab .n{margin-left:8px;font-variant-numeric:tabular-nums}
+.tabbed .plabel{display:none}
+.races .soon{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 16px;padding:16px}
+.dot.wait{background:rgb(255,135,0)}
+.panel[hidden]{display:none}
 .races{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:12px}
 .races>li{border:1px solid var(--rule);border-radius:8px;overflow:hidden}
 .races summary{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:4px 16px;padding:16px;cursor:pointer;
@@ -193,9 +207,9 @@ font:600 14px/24px var(--body);transition:background-color .15s cubic-bezier(.4,
 <p>Top-3 overlap is the share of the real podium drivers that were in the model's top three picks. Exact podium counts the races where all three picks were right. Brier score and log loss judge the percentages themselves. For both of those, lower is better.</p>
 <p>So far the model has not clearly beaten the two simple guesses, so treat its picks with care. That is why the top of each page says so.</p></div></div>
 <div class="mrow"><h3>What it does not know</h3><div class="mtext">
-<p>It only knows about grid penalties if the official starting grid was entered before the race. Otherwise it assumes the qualifying order. It also knows nothing about weather, tyre choices, safety cars or car upgrades, and it has only a few seasons of results, so some circuits have little history. The percentages are raw model output. They have not been checked for calibration, so a "70%" may not come true seven times in ten.</p>
+<p>It only knows about grid penalties if the official starting grid was entered before the race. Otherwise it assumes the qualifying order. It also knows nothing about weather, tyre choices, safety cars or car upgrades, and it has only a few seasons of results, so some circuits have little history. The percentages are raw model output. In the tests above they came out close to the real rates, with the model a little cautious: drivers rated above 35% reached the podium slightly more often than predicted, and drivers rated below 10% slightly less often. A "70%" is still a likelihood, not a promise.</p>
 <p>Treat the numbers as a ranking of who looks strongest, not as a promise. Results and qualifying come from the Jolpica F1 API.</p>
 </div></div>
 </section>
-<footer class="made">Made by <a href="https://ceejt-portfolio.vercel.app/" target="_blank" rel="noopener noreferrer">ceejt</a></footer>
+<footer class="made"><span>Made by <a href="https://ceejt-portfolio.vercel.app/" target="_blank" rel="noopener noreferrer">ceejt</a></span><a class="gh" href="https://github.com/ceejt/Slipstream" target="_blank" rel="noopener noreferrer" aria-label="Slipstream on GitHub" title="Slipstream on GitHub"><svg viewBox="0 0 16 16" width="24" height="24" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></footer>
 </main></body></html>

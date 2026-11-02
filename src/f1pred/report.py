@@ -2,11 +2,13 @@
 import json
 import re
 import sys
+from datetime import date
 from html import escape
 
 import pandas as pd
 
-from .config import EVALUATION, OUTCOMES, PREDICTIONS, REPORTS, RESULTS_CSV
+from . import jolpica
+from .config import EVALUATION, NEXT_RACE, OUTCOMES, PREDICTIONS, REPORTS, RESULTS_CSV
 
 FAVICON = (
     '<link rel="icon" href="favicon-light.svg" type="image/svg+xml" media="(prefers-color-scheme: light)">'
@@ -112,14 +114,27 @@ tbody tr:hover td{background:var(--surface-2)}
 animation:grow .3s cubic-bezier(.4,0,.2,1) both;animation-delay:calc(var(--i)*30ms)}
 @keyframes grow{from{width:0}}
 .pv{flex:none;width:48px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
-.made{margin:48px 0 0;padding-top:16px;border-top:1px solid var(--rule);color:var(--muted);font:600 14px/20px var(--body)}
-.made a{color:var(--text);font-weight:700;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}
+.made{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:48px 0 0;padding-top:16px;border-top:1px solid var(--rule);color:var(--muted);font:600 14px/20px var(--body)}
+.made .gh{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:-12px -10px -12px 0;color:var(--text);text-decoration:none}
+.made .gh:hover,.made .gh:focus-visible{color:var(--muted)}
+.made a:not(.gh){color:var(--text);font-weight:700;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}
 @supports (background-clip:text) or (-webkit-background-clip:text){
-.made a{background:repeating-linear-gradient(105deg,var(--chrome-lo) 0,var(--chrome-hi) 9px,var(--chrome-lo) 18px) 0 0/300% 100%;
+.made a:not(.gh){background:repeating-linear-gradient(105deg,var(--chrome-lo) 0,var(--chrome-hi) 9px,var(--chrome-lo) 18px) 0 0/300% 100%;
 -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
 font:900 17px/20px var(--body);transition:background-position .8s cubic-bezier(.4,0,.2,1);
 filter:drop-shadow(0 1px 0 var(--chrome-edge))}
-.made a:hover,.made a:focus-visible{background-position:-9px 0}}
+.made a:not(.gh):hover,.made a:not(.gh):focus-visible{background-position:-9px 0}}
+.tabs{display:flex;gap:24px;border-bottom:1px solid var(--rule);margin:0 0 16px}
+.tabs[hidden]{display:none}
+.tab{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:14px 0;cursor:pointer;
+color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px}
+.tab:hover,.tab[aria-selected=true]{color:var(--text)}
+.tab[aria-selected=true]{border-bottom-color:var(--text)}
+.tab .n{margin-left:8px;font-variant-numeric:tabular-nums}
+.tabbed .plabel{display:none}
+.races .soon{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 16px;padding:16px}
+.dot.wait{background:rgb(255,135,0)}
+.panel[hidden]{display:none}
 .races{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:12px}
 .races>li{border:1px solid var(--rule);border-radius:8px;overflow:hidden}
 .races summary{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:4px 16px;padding:16px;cursor:pointer;
@@ -259,8 +274,11 @@ def _top(back=False):
     return f'<header class="top">{BRAND}{link}</header>'
 
 
-CREDIT = ('<footer class="made">Made by <a href="https://ceejt-portfolio.vercel.app/" '
-          'target="_blank" rel="noopener noreferrer">ceejt</a></footer>')
+GITHUB_ICON = ('<svg viewBox="0 0 16 16" width="24" height="24" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>')
+CREDIT = ('<footer class="made"><span>Made by <a href="https://ceejt-portfolio.vercel.app/" '
+          'target="_blank" rel="noopener noreferrer">ceejt</a></span>'
+          f'<a class="gh" href="https://github.com/ceejt/Slipstream" target="_blank" rel="noopener noreferrer" '
+          f'aria-label="Slipstream on GitHub" title="Slipstream on GitHub">{GITHUB_ICON}</a></footer>')
 
 
 def _ordinal(n):
@@ -396,7 +414,7 @@ REASONS_TEXT = {
 }
 
 
-def _method_html(ev, model="xgboost"):
+def _method_html(ev, model="xgboost", has_win=False):
     """The "How it works" section, in plain words. Numbers come from the saved evaluation."""
     beat = _beats(ev, model)
     verdict = ""
@@ -406,6 +424,13 @@ def _method_html(ev, model="xgboost"):
     elif beat is False:
         verdict = ("<p>So far the model has not clearly beaten the two simple guesses, so treat its picks with care. "
                    "That is why the top of each page says so.</p>")
+    win_text = ""
+    if has_win:
+        win_text = ("<p>Each pick card also shows a win chance. It comes from a second model of the same kind, taught on whether "
+                    "the driver won the race. The win chances of the whole field add up to 100%, because exactly one driver wins. "
+                    "This number is usually more useful than the podium chance for telling the leader from the rest. "
+                    "The order of the podium is a different matter: the model is no better at it than the grid order, "
+                    "so the three picks are ordered by podium chance and the order should be read with care.</p>")
     return f"""<section class="method" aria-labelledby="how">
 <h2 class="label" id="how">How it works</h2>
 <div class="mrow"><h3>What the model looks at</h3><div class="mtext">
@@ -422,7 +447,7 @@ def _method_html(ev, model="xgboost"):
 {MODEL_TEXT.get(model, MODEL_TEXT["xgboost"])}
 <p>To learn, the model looks at every earlier race. For each driver it sees the facts above and whether they finished on the podium (the top three). Over time it learns which combinations of facts usually lead to a podium. For a new race, it gives each driver a number from 0% to 100%: how likely that driver is to finish in the top three, judging by how similar drivers did before. It is not a simulation of the race.</p>
 <p>Each driver gets their own number, and a podium has three places, so across the whole field the numbers add up to around 300%, not 100%. A driver at 80% is not "80% to win". It means the model thinks a podium is very likely.</p>
-</div></div>
+{win_text}</div></div>
 <div class="mrow"><h3>Why each pick has reasons</h3><div class="mtext">
 <p>Under each of the three picks you see the three facts that moved the number most. {REASONS_TEXT.get(model, REASONS_TEXT["xgboost"])} A plus sign means the fact raised the driver's chance. A minus sign means it lowered it. The strongest comes first.</p>
 </div></div>
@@ -433,7 +458,7 @@ def _method_html(ev, model="xgboost"):
 <p>Top-3 overlap is the share of the real podium drivers that were in the model's top three picks. Exact podium counts the races where all three picks were right. Brier score and log loss judge the percentages themselves. For both of those, lower is better.</p>
 {verdict}</div></div>
 <div class="mrow"><h3>What it does not know</h3><div class="mtext">
-<p>It only knows about grid penalties if the official starting grid was entered before the race. Otherwise it assumes the qualifying order. It also knows nothing about weather, tyre choices, safety cars or car upgrades, and it has only a few seasons of results, so some circuits have little history. The percentages are raw model output. They have not been checked for calibration, so a "70%" may not come true seven times in ten.</p>
+<p>It only knows about grid penalties if the official starting grid was entered before the race. Otherwise it assumes the qualifying order. It also knows nothing about weather, tyre choices, safety cars or car upgrades, and it has only a few seasons of results, so some circuits have little history. The percentages are raw model output. In the tests above they came out close to the real rates, with the model a little cautious: drivers rated above 35% reached the podium slightly more often than predicted, and drivers rated below 10% slightly less often. A "70%" is still a likelihood, not a promise.</p>
 <p>Treat the numbers as a ranking of who looks strongest, not as a promise. Results and qualifying come from the Jolpica F1 API.</p>
 </div></div>
 </section>"""
@@ -629,7 +654,7 @@ def render(p: dict, evaluation=None, names=None) -> str:
 {_top(True)}
 <h1>{escape(p['event'])}</h1>
 {render_body(p, evaluation, names)}
-{_method_html(evaluation, p.get('model', 'xgboost'))}
+{_method_html(evaluation, p.get('model', 'xgboost'), any(d.get('p_win') is not None for d in p['drivers']))}
 {CREDIT}
 </main></body></html>"""
 
@@ -646,9 +671,36 @@ def _name_lookup():
             for r in latest.itertuples() if pd.notna(r.FamilyName)}
 
 
-def render_index(items, evaluation=None, names=None):
-    """Landing page: one row per saved prediction, newest first."""
-    rows = ""
+TABS_SCRIPT = """(function(){
+var t=document.getElementById("tabs");if(!t)return;
+var b=[].slice.call(t.querySelectorAll("[role=tab]")),p=[].slice.call(document.querySelectorAll("[data-panel]"));
+function show(n,focus){b.forEach(function(x){var on=x.dataset.tab===n;x.setAttribute("aria-selected",on);x.tabIndex=on?0:-1;if(on&&focus)x.focus()});
+p.forEach(function(x){x.hidden=x.dataset.panel!==n})}
+document.documentElement.classList.add("tabbed");t.hidden=false;
+b.forEach(function(x,i){x.addEventListener("click",function(){show(x.dataset.tab)});
+x.addEventListener("keydown",function(e){var j=e.key==="ArrowRight"?i+1:e.key==="ArrowLeft"?i-1:-1;
+if(j>=0){e.preventDefault();show(b[(j+b.length)%b.length].dataset.tab,true)}})});
+var d=document.getElementById(location.hash.slice(1)),h=d&&d.tagName==="DETAILS";
+if(h)d.open=true;show(h?d.closest("[data-panel]").dataset.panel:t.dataset.first)})()"""
+
+
+def _short_date(iso):
+    d = date.fromisoformat(iso)
+    return f"{d.day} {d:%b}"
+
+
+def _soon_row(n):
+    """A placeholder for the next race: no prediction exists until qualifying is done."""
+    when = f'Prediction after qualifying on {_short_date(n["quali_date"])}' if n.get("quali_date") else "Prediction after qualifying"
+    return (f'<li class="soon"><span><span class="ev">{escape(n["event"])}</span><p class="meta2">{when}</p></span>'
+            f'<span class="when"><span class="when-top"><span class="dot wait" role="img" aria-label="waiting for qualifying" '
+            f'title="waiting for qualifying"></span>Round {n["round"]}, {n["year"]}</span><br>Race on {_short_date(n["date"])}</span></li>')
+
+
+def render_index(items, evaluation=None, names=None, next_race=None):
+    """Landing page: saved predictions, newest first, split into upcoming races and results."""
+    rows = {"upcoming": "", "results": ""}
+    counts = {"upcoming": 0, "results": 0}
     for p in items:
         top = p["drivers"][0]
         first, last = _names(top["driver"], names)
@@ -658,12 +710,31 @@ def render_index(items, evaluation=None, names=None):
         detail = f'Top pick {who}, {top["p_podium"] * 100:.1f}% podium probability'
         status = f"{hits} of 3 picks on the podium" if backtest else "Waiting for the race"
         slug = f'{p["year"]}-R{p["round"]:02d}'
-        rows += (f'<li><details id="{slug}"><summary><span><span class="ev">{escape(p["event"])}</span>'
+        key = "results" if backtest else "upcoming"
+        counts[key] += 1
+        rows[key] += (f'<li><details id="{slug}"><summary><span><span class="ev">{escape(p["event"])}</span>'
                  f'<p class="meta2">{detail}</p></span><span class="when"><span class="when-top">{_status_dot(p)}Round {p["round"]}, {p["year"]}</span><br>{status}</span></summary>'
                  f'<div class="rbody">{render_body(p, evaluation, names)}'
                  f'<a class="open" href="{p["year"]}_R{p["round"]:02d}.html">Open as its own page</a></div></details></li>')
-    if not rows:
-        rows = '<li><p class="meta2" style="padding:16px">No predictions yet.</p></li>'
+    if next_race:
+        rows["upcoming"] += _soon_row(next_race)
+        counts["upcoming"] += 1
+    empty = {"upcoming": "No upcoming races yet.", "results": "No results yet."}
+    if not items:
+        empty["upcoming"] = "No predictions yet."
+    for k in rows:
+        if not rows[k]:
+            rows[k] = f'<li><p class="meta2" style="padding:16px">{empty[k]}</p></li>'
+    start = "upcoming" if counts["upcoming"] else "results"
+    tabs = "".join(
+        f'<button type="button" class="tab" role="tab" id="tab-{k}" data-tab="{k}" aria-controls="panel-{k}" '
+        f'aria-selected="{"true" if k == start else "false"}"{"" if k == start else " tabindex=-1"}>'
+        f'{label}<span class="n">{counts[k]}</span></button>'
+        for k, label in (("upcoming", "Upcoming"), ("results", "Results")))
+    panels = "".join(
+        f'<div class="panel" role="tabpanel" id="panel-{k}" aria-labelledby="tab-{k}" data-panel="{k}">'
+        f'<h2 class="label plabel">{label}</h2><ul class="races">{rows[k]}</ul></div>'
+        for k, label in (("upcoming", "Upcoming"), ("results", "Results")))
     model = "blend" if "blend" in ((evaluation or {}).get("models") or {}) else "xgboost"
     claim = " ".join(s for s in ("Raw model output, not calibrated.", _baseline_line(evaluation, model)) if s)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -672,21 +743,46 @@ def render_index(items, evaluation=None, names=None):
 {_top()}
 <h1>Formula 1 podium predictions</h1>
 <p class="claim">Made after qualifying and saved before the race, then compared with the result. {escape(claim)}</p>
-<h2 class="label">Races</h2>
-<ul class="races">{rows}</ul>
-<script>(function(){{var d=document.getElementById(location.hash.slice(1));if(d&&d.tagName==="DETAILS")d.open=true}})()</script>
-{_method_html(evaluation, model)}
+<div class="tabs" id="tabs" role="tablist" aria-label="Races" data-first="{start}" hidden>{tabs}</div>
+{panels}
+<script>{TABS_SCRIPT}</script>
+{_method_html(evaluation, model, any(d.get('p_win') is not None for q in items for d in q['drivers'][:3]))}
 {CREDIT}
 </main>{INTRO_SCRIPT}</body></html>"""
+
+
+def _next_race(items):
+    """The next race on the calendar that has no prediction yet, or None. Asks Jolpica, keeps the answer in
+    data/next_race.json, and falls back to that file if the network is down. Never raises."""
+    done = {(p["year"], p["round"]) for p in items}
+    today = date.today().isoformat()
+    found = None
+    try:
+        for r in jolpica.get(str(date.today().year), date.today().year)["RaceTable"]["Races"]:
+            if r["date"] >= today and (int(r["season"]), int(r["round"])) not in done:
+                found = {"year": int(r["season"]), "round": int(r["round"]), "event": r["raceName"], "date": r["date"],
+                         "quali_date": (r.get("Qualifying") or {}).get("date")}
+                break
+        NEXT_RACE.write_text(json.dumps(found, indent=2))
+    except Exception:
+        try:
+            found = json.loads(NEXT_RACE.read_text())
+        except Exception:
+            return None
+    if found and found["date"] >= today and (found["year"], found["round"]) not in done:
+        return found
+    return None
 
 
 def write_index(fallback=None, names=None):
     items = [json.loads(f.read_text()) for f in PREDICTIONS.glob("*.json")]
     items = [_apply_outcome(p, _load_outcome(p)) for p in items]
     items.sort(key=lambda p: (p["year"], p["round"]), reverse=True)
+    if fallback is None and EVALUATION.exists():
+        fallback = json.loads(EVALUATION.read_text())
     ev = fallback or (items[0].get("evaluation") if items else None)  # the index always shows the latest evaluation
     path = REPORTS / "index.html"
-    path.write_text(render_index(items, ev, names))
+    path.write_text(render_index(items, ev, names, _next_race(items)))
     return path
 
 
