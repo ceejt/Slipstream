@@ -1,36 +1,36 @@
 {
-  "created_utc": "2026-11-01T19:22:11+00:00",
-  "races": 83,
+  "created_utc": "2026-11-02T14:43:10+00:00",
+  "races": 84,
   "through": {
     "year": 2026,
-    "round": 18
+    "round": 19
   },
   "models": {
     "grid order": {
-      "races": 83.0,
-      "top3_overlap": 0.671,
-      "exact_podium": 0.241,
+      "races": 84.0,
+      "top3_overlap": 0.667,
+      "exact_podium": 0.238,
       "brier": null,
       "logloss": null
     },
     "grid logistic": {
-      "races": 83.0,
-      "top3_overlap": 0.671,
-      "exact_podium": 0.241,
+      "races": 84.0,
+      "top3_overlap": 0.667,
+      "exact_podium": 0.238,
       "brier": 0.068,
       "logloss": 0.238
     },
     "xgboost": {
-      "races": 83.0,
+      "races": 84.0,
       "top3_overlap": 0.675,
-      "exact_podium": 0.217,
+      "exact_podium": 0.214,
       "brier": 0.07,
       "logloss": 0.231
     },
     "blend": {
-      "races": 83.0,
-      "top3_overlap": 0.691,
-      "exact_podium": 0.253,
+      "races": 84.0,
+      "top3_overlap": 0.687,
+      "exact_podium": 0.25,
       "brier": 0.066,
       "logloss": 0.214
     }

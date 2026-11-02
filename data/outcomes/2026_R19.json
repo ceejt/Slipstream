@@ -1,0 +1,95 @@
+{
+  "year": 2026,
+  "round": 19,
+  "created_utc": "2026-11-02T14:42:38+00:00",
+  "drivers": {
+    "VER": {
+      "position": 1,
+      "status": "Finished"
+    },
+    "HAM": {
+      "position": 2,
+      "status": "Finished"
+    },
+    "ANT": {
+      "position": 3,
+      "status": "Finished"
+    },
+    "LEC": {
+      "position": 4,
+      "status": "Finished"
+    },
+    "NOR": {
+      "position": 5,
+      "status": "Finished"
+    },
+    "RUS": {
+      "position": 6,
+      "status": "Finished"
+    },
+    "PIA": {
+      "position": 7,
+      "status": "Finished"
+    },
+    "COL": {
+      "position": 8,
+      "status": "Finished"
+    },
+    "LAW": {
+      "position": 9,
+      "status": "Finished"
+    },
+    "GAS": {
+      "position": 10,
+      "status": "Finished"
+    },
+    "BOR": {
+      "position": 11,
+      "status": "Finished"
+    },
+    "HAD": {
+      "position": 12,
+      "status": "Finished"
+    },
+    "HIR": {
+      "position": 13,
+      "status": "Finished"
+    },
+    "ALB": {
+      "position": 14,
+      "status": "Finished"
+    },
+    "SAI": {
+      "position": 15,
+      "status": "Finished"
+    },
+    "HUL": {
+      "position": 16,
+      "status": "Finished"
+    },
+    "PER": {
+      "position": 17,
+      "status": "Finished"
+    },
+    "LIN": {
+      "position": 18,
+      "status": "Retired"
+    },
+    "BEA": {
+      "position": 19,
+      "status": "Retired"
+    },
+    "BOT": {
+      "position": 20,
+      "status": "Retired"
+    },
+    "STR": {
+      "position": 21,
+      "status": "Retired"
+    },
+    "ALO": {
+      "position": 22,
+      "status": "Retired"
+    }
+  }
+}
