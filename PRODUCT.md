@@ -24,15 +24,16 @@ Honest evaluation. Features for race N use only information known before race N.
 ## Operating Context
 
 - Data comes from the Jolpica F1 API (the Ergast successor, no login). F1's own live timing service now requires authentication, so it is not used.
-- A prediction is made after qualifying and before the race. Qualifying order is the grid, so grid penalties are not reflected.
+- A prediction is made after qualifying and before the race. Qualifying order is the grid unless the official starting grid is passed with `--start-grid`, so grid penalties are reflected only then.
 - The workflow is command line: `fetch`, `evaluate`, `predict <year> <round>`, which writes `data/predictions/<year>_R<round>.json` and `reports/<year>_R<round>.html`. After the race, `fetch` then `outcome` adds the result in `data/outcomes/` and rebuilds the page. The saved prediction is not touched.
 - A report has three modes. **Upcoming**: the race has not run. **Scored**: a pre-race prediction with the real result added afterward, showing HIT or MISS for the three picks. **Backtest**: a prediction made for a race already in the data, so it was not made before the race.
 - For now, predictions are committed and pushed by hand, so the commit time on a prediction is the proof it came before the race.
 
 ## Capabilities and Constraints
 
-- Per race, per driver: a podium probability (independent per driver, so they do not sum to 100%), the grid position, and the three features that moved the score most (SHAP reasons).
-- Probabilities are raw model output and not calibrated.
+- Per race, per driver: a podium probability (independent per driver, so they do not sum to 100%), a win chance (from a second blend, scaled so the field sums to 100%; saved from the first prediction made after this change, so earlier pages (R18, R19) show none), the grid position, and the three features that moved the score most (SHAP reasons).
+- Probabilities are raw model output, with no calibration step applied. A calibration check on the walk-forward predictions found them close to the real rates and slightly cautious (see Evidence on Hand).
+- The model is no better than grid order at the order of the podium, so the three picks are ordered by podium probability and the order is not a claim.
 - A race report is one self-contained HTML file: no images, no icons, and no JavaScript of its own. The index page has two small inline scripts: one opens the race named in the link, and one runs a once-per-session intro (a cartoon car that drives across by itself, optional engine sound that browsers may block, and a Skip button). The intro is skipped for reduced motion and for links to a race. Optional files in `reports/assets/` (`car.svg|png|webp`, `engine.mp3|ogg|wav|m4a`) replace the drawn car and add the sound. The only external requests are the web font link and the Vercel Web Analytics script, which counts visits without cookies.
 - No weather features and no safety car features yet. Both were removed when the data source changed.
 - Terminology: **podium** means finishing in the top 3. **Grid** means qualifying order. **Backtest** means a race already in the data.
@@ -47,14 +48,16 @@ Honest evaluation. Features for race N use only information known before race N.
 ## Evidence on Hand
 
 - `data/predictions/2026_R18.json` and `reports/2026_R18.html`: the pre-race prediction for the 2026 United States GP (VER, ANT, HAD as the top three by probability).
-- Walk-forward evaluation on 83 races (2023 to 2026 data, saved in `data/evaluation.json`): the model is now an average of a 6-feature logistic regression and a regularised XGBoost. It has a top-3 overlap of 0.691 against 0.671 for both grid baselines, an exact-podium rate of 0.253 against 0.241, a Brier score of 0.066 against 0.068 and a log loss of 0.214 against 0.238. The earlier plain XGBoost scored 0.675, 0.217, 0.070 and 0.231. The gaps are small and a bootstrap over races does not rule out chance, so the model has not clearly beaten the baseline. Predictions saved before the blend (R18, R19) were made by the plain XGBoost.
+- Walk-forward evaluation on 84 races (2023 to 2026 data, saved in `data/evaluation.json`): the model is now an average of a 6-feature logistic regression and a regularised XGBoost. It has a top-3 overlap of 0.687 against 0.667 for both grid baselines, an exact-podium rate of 0.250 against 0.238, a Brier score of 0.066 against 0.068 and a log loss of 0.214 against 0.238. The earlier plain XGBoost scored 0.667, 0.226, 0.071 and 0.232. The gaps are small and a bootstrap over races does not rule out chance, so the model has not clearly beaten the baseline. Predictions saved before the blend (R18, R19) were made by the plain XGBoost.
+- Calibration check on the same 84 races (blend): mean predicted podium chance 15.0% against an actual rate of 14.7%; calibration slope 1.18 (95% interval 1.03 to 1.34), so the model is mildly cautious. Drivers rated above 35% reached the podium 3 to 8 points more often than predicted; drivers rated below 10% about 1 to 2 points less often. The 20 to 35% band was the weakest (27% predicted, 20% actual).
+- Experiments that did not help and were not adopted: driver racecraft features (places gained from the grid, plain, recent and teammate-relative; Brier slightly worse, intervals include zero), recency weighting, extra seasons from 2018, and separate P1, P2, P3 order models (no better than ordering by podium probability; exact order 10.7%, the same as grid order). The win head alone is useful: Brier 0.030 against 0.047 for a constant guess.
 - Tests that check features do not use the current race's outcome.
-- Absent, so future work must not invent them: a track record of scored predictions across many races, calibration results, user counts, and any published URL.
+- Absent, so future work must not invent them: a track record of scored predictions across many races, user counts, and any published URL.
 
 ## Product Principles
 
 1. **Pre-race information only.** A feature for race N uses nothing from race N or later.
 2. **Report the result as it is.** A tie with the baseline is stated as a tie. No accuracy claim goes in without an evaluation behind it.
 3. **A prediction is fixed once made.** The actual result is added beside it, never in place of it.
-4. **Probabilities are not certainty.** Show them as model output, say they are uncalibrated, and never present a pick as a call.
+4. **Probabilities are not certainty.** Show them as model output, say no calibration is applied, and never present a pick as a call.
 5. **Show enough to check the claim.** Every report states when it was made, how many races it trained on, and why each top pick scored as it did.
