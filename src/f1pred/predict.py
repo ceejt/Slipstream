@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import shap
 
-from . import jolpica
+from . import jolpica, weather
 from .config import EVALUATION, PREDICTIONS, RESULTS_CSV
 from .evaluate import Blend
 from .fetch import _code, _seconds
@@ -120,6 +120,7 @@ def run(year: int, rnd: int, grid=None, start_grid=None) -> dict:
         "mode": "backtest" if done else "upcoming",
         "model": "blend",
         "official_grid": bool(start_grid) and not done,
+        "forecast": None if done else weather.for_race(year, rnd),  # shown on the page, not used by the model
         "trained_on_races": int(df[(df["race_id"] < race_id) & df["position"].notna()]["race_id"].nunique()),
         "evaluation": json.loads(EVALUATION.read_text()) if EVALUATION.exists() else None,
         "drivers": [{

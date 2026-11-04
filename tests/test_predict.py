@@ -215,7 +215,7 @@ def test_index_splits_upcoming_and_results_into_tabs_and_opens_the_right_one():
     up = _payload(drivers=[_driver("VER", "Red Bull", 0.8)])
     done = dict(_payload("scored", [_driver("AAA", "Ferrari", .9, 1, "Finished")]), round=17, event="Singapore Grand Prix")
     html = render_index([up, done])
-    assert 'data-tab="upcoming"' in html and 'data-tab="results"' in html and 'data-first="upcoming"' in html
+    assert 'data-tab="upcoming"' in html and 'data-tab="results"' in html and 'data-first="results"' in html
     up_panel, res_panel = html.split('id="panel-results"')
     assert "2026_R18.html" in up_panel and "2026_R17.html" not in up_panel.split('id="panel-upcoming"')[1]
     assert "2026_R17.html" in res_panel
@@ -228,7 +228,7 @@ def test_index_shows_a_placeholder_for_the_next_race_without_a_prediction():
     done = dict(_payload("scored", [_driver("AAA", "Ferrari", .9, 1, "Finished")]), round=19)
     html = render_index([done], next_race=nxt)
     assert "Brazilian Grand Prix" in html and "Prediction after qualifying on 7 Nov" in html and "Race on 8 Nov" in html
-    assert 'data-first="upcoming"' in html and "2026_R20.html" not in html
+    assert 'data-first="results"' in html and "2026_R20.html" not in html
     assert "Brazilian" not in render_index([done])
 
 
@@ -251,3 +251,26 @@ def test_footer_has_a_github_icon_link_to_the_repo_on_report_and_index():
     for html in (render(_payload(drivers=[_driver("VER", "Red Bull", 0.8)])), render_index([])):
         assert 'class="gh" href="https://github.com/ceejt/Slipstream"' in html
         assert 'aria-label="Slipstream on GitHub"' in html and 'rel="noopener noreferrer"' in html
+
+
+def test_rain_forecast_is_read_from_the_race_hour_and_never_raises(monkeypatch):
+    from f1pred import weather
+    race = {"date": "2026-11-08", "time": "17:00:00Z", "Circuit": {"Location": {"lat": "-23.7", "long": "-46.7"}}}
+    hourly = {"precipitation_probability": [0] * 17 + [40, 70, 20] + [0] * 4, "precipitation": [0] * 17 + [.3, .6, .1] + [0] * 4}
+    monkeypatch.setattr(weather.requests, "get", lambda *a, **k: type("R", (), {"json": lambda self: {"hourly": hourly}})())
+    f = weather.rain_forecast(race)
+    assert f["rain_chance"] == 70 and f["rain_mm"] == 1.0
+    monkeypatch.setattr(weather.requests, "get", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("down")))
+    assert weather.rain_forecast(race) is None and weather.rain_forecast({}) is None
+
+
+def test_forecast_is_shown_on_the_next_race_row_and_the_race_page_but_only_when_present():
+    f = {"rain_chance": 70, "rain_mm": 1.0, "asof": "2026-11-05"}
+    nxt = {"year": 2026, "round": 20, "event": "Brazilian Grand Prix", "date": "2026-11-08", "quali_date": "2026-11-07", "forecast": f}
+    done = dict(_payload("scored", [_driver("AAA", "Ferrari", .9, 1, "Finished")]), round=19)
+    html = render_index([done], next_race=nxt)
+    assert "Forecast rain chance 70% (as of 5 Nov), not used by the model" in html
+    assert "Forecast rain chance" not in render_index([done], next_race=dict(nxt, forecast=None))
+    page = render(dict(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]), forecast=f))
+    assert "Forecast rain chance 70%" in page
+    assert "Forecast rain chance" not in render(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]))

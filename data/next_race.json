@@ -3,5 +3,10 @@
   "round": 20,
   "event": "Brazilian Grand Prix",
   "date": "2026-11-08",
-  "quali_date": "2026-11-07"
+  "quali_date": "2026-11-07",
+  "forecast": {
+    "rain_chance": 63,
+    "rain_mm": 0.8,
+    "asof": "2026-11-05"
+  }
 }

@@ -7,7 +7,7 @@ from html import escape
 
 import pandas as pd
 
-from . import jolpica
+from . import jolpica, weather
 from .config import EVALUATION, NEXT_RACE, OUTCOMES, PREDICTIONS, REPORTS, RESULTS_CSV
 
 FAVICON = (
@@ -629,13 +629,14 @@ def render_body(p: dict, evaluation=None, names=None) -> str:
     result_added = (f'<span>Result added {escape(p["outcome_utc"][:16].replace("T", " "))} UTC</span>'
                     if p.get("outcome_utc") else "")
     tag = _status_tag(p)
+    rain = f"<span>{escape(_rain_text(p.get('forecast')))}</span>" if _rain_text(p.get("forecast")) else ""
     model = p.get("model", "xgboost")  # predictions made before the blend have no "model" key
     claim = " ".join(s for s in (
         "Raw model output, not calibrated.", _baseline_line(evaluation, model),
         "Grid is the official starting order, including penalties." if p.get("official_grid")
         else "Grid is the qualifying order, so penalties are not included.") if s)
     debrief = _debrief(drivers, names, evaluation, model) if backtest else ""
-    return f"""<p class="meta">{tag}<span>Round {p['round']}, {p['year']}</span><span>Trained on {p['trained_on_races']} earlier races</span><span>Made {made}</span>{result_added}</p>
+    return f"""<p class="meta">{tag}<span>Round {p['round']}, {p['year']}</span><span>Trained on {p['trained_on_races']} earlier races</span><span>Made {made}</span>{result_added}{rain}</p>
 <p class="claim">{escape(claim)}</p>
 {summary}<h2 class="label">Highest podium probability</h2>
 <section class="podium">{cards}</section>
@@ -689,10 +690,18 @@ def _short_date(iso):
     return f"{d.day} {d:%b}"
 
 
+def _rain_text(f):
+    """Plain sentence for a saved rain forecast; the model does not use it."""
+    if not f or f.get("rain_chance") is None:
+        return ""
+    return f'Forecast rain chance {f["rain_chance"]}% (as of {_short_date(f["asof"])}), not used by the model'
+
+
 def _soon_row(n):
     """A placeholder for the next race: no prediction exists until qualifying is done."""
     when = f'Prediction after qualifying on {_short_date(n["quali_date"])}' if n.get("quali_date") else "Prediction after qualifying"
-    return (f'<li class="soon"><span><span class="ev">{escape(n["event"])}</span><p class="meta2">{when}</p></span>'
+    rain = f'<p class="meta2">{_rain_text(n.get("forecast"))}</p>' if _rain_text(n.get("forecast")) else ""
+    return (f'<li class="soon"><span><span class="ev">{escape(n["event"])}</span><p class="meta2">{when}</p>{rain}</span>'
             f'<span class="when"><span class="when-top"><span class="dot wait" role="img" aria-label="waiting for qualifying" '
             f'title="waiting for qualifying"></span>Round {n["round"]}, {n["year"]}</span><br>Race on {_short_date(n["date"])}</span></li>')
 
@@ -725,7 +734,7 @@ def render_index(items, evaluation=None, names=None, next_race=None):
     for k in rows:
         if not rows[k]:
             rows[k] = f'<li><p class="meta2" style="padding:16px">{empty[k]}</p></li>'
-    start = "upcoming" if counts["upcoming"] else "results"
+    start = "results"  # the page opens on past races; a link to an upcoming race still switches to its tab
     tabs = "".join(
         f'<button type="button" class="tab" role="tab" id="tab-{k}" data-tab="{k}" aria-controls="panel-{k}" '
         f'aria-selected="{"true" if k == start else "false"}"{"" if k == start else " tabindex=-1"}>'
@@ -761,7 +770,8 @@ def _next_race(items):
         for r in jolpica.get(str(date.today().year), date.today().year)["RaceTable"]["Races"]:
             if r["date"] >= today and (int(r["season"]), int(r["round"])) not in done:
                 found = {"year": int(r["season"]), "round": int(r["round"]), "event": r["raceName"], "date": r["date"],
-                         "quali_date": (r.get("Qualifying") or {}).get("date")}
+                         "quali_date": (r.get("Qualifying") or {}).get("date"),
+                         "forecast": weather.rain_forecast(r)}
                 break
         NEXT_RACE.write_text(json.dumps(found, indent=2))
     except Exception:
