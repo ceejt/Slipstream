@@ -50,6 +50,12 @@ main{max-width:973px;margin:0 auto;padding:24px 16px 48px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 32px;
 padding-bottom:12px;border-bottom:1px solid var(--rule)}
 .brand{font:900 16px/22px var(--display);text-transform:uppercase;letter-spacing:.5px;margin:0}
+.top{flex-wrap:wrap}
+.nav{display:flex;gap:4px;margin-right:auto}
+.nav a{color:var(--muted);text-decoration:none;font:600 14px/20px var(--body);padding:12px;min-height:44px;box-sizing:border-box;
+border-bottom:2px solid transparent;margin-bottom:-14px}
+.nav a:hover{color:var(--text)}
+.nav a[aria-current=page]{color:var(--text);border-bottom-color:#E10600}
 .back{color:var(--text);text-decoration:none;border:1px solid var(--rule);border-radius:4px;padding:4px 12px;
 font:600 14px/20px var(--body);transition:background-color .15s cubic-bezier(.4,0,.2,1)}
 .back:hover{background:var(--surface-2)}
@@ -268,10 +274,16 @@ LOGO = (
 BRAND = ('<p class="brand"><a href="https://github.com/ceejt/Slipstream" target="_blank" rel="noopener noreferrer" '
          'aria-label="Slipstream, source code on GitHub (opens in a new tab)">' + LOGO + 'Slipstream</a></p>')
 
-def _top(back=False):
-    """Top bar: wordmark on the left, and on race pages a button back to the index."""
-    link = '<a class="back" href="index.html">Back to all races</a>' if back else ""
-    return f'<header class="top">{BRAND}{link}</header>'
+NAV = (("predictor", "Podium predictor", "index.html"), ("lab", "Race lab", "lab/index.html"))
+
+
+def _top(back=False, current="predictor", root=""):
+    """Top bar: wordmark, the two sections, and on race pages a button back to the index.
+    root is the path back to reports/ ("../" from inside reports/lab/)."""
+    links = "".join(f'<a href="{root}{href}"{" aria-current=page" if key == current else ""}>{label}</a>'
+                    for key, label, href in NAV)
+    link = f'<a class="back" href="{root}index.html">Back to all races</a>' if back else ""
+    return f'<header class="top">{BRAND}<nav class="nav" aria-label="Sections">{links}</nav>{link}</header>'
 
 
 GITHUB_ICON = ('<svg viewBox="0 0 16 16" width="24" height="24" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>')

@@ -1,0 +1,130 @@
+{
+  "created_utc": "2026-11-05T16:13:03+00:00",
+  "races": 75,
+  "races_fitted": 80,
+  "wet_races_skipped": 7,
+  "tuned_on": 2023,
+  "simulations_per_race": 500,
+  "all": {
+    "simulator": {
+      "races": 75,
+      "top3_overlap": 0.6533333333333333,
+      "exact_podium": 0.18666666666666668,
+      "brier": 0.06877290625,
+      "logloss": 0.2127317694046337
+    },
+    "blend": {
+      "races": 75,
+      "top3_overlap": 0.6933333333333334,
+      "exact_podium": 0.25333333333333335,
+      "brier": 0.06387057894342361,
+      "logloss": 0.20513779219844333
+    },
+    "grid logistic": {
+      "races": 75,
+      "top3_overlap": 0.6666666666666666,
+      "exact_podium": 0.22666666666666666,
+      "brier": 0.06628517240204101,
+      "logloss": 0.22587227870260188
+    },
+    "simulator + blend": {
+      "races": 75,
+      "top3_overlap": 0.6844444444444444,
+      "exact_podium": 0.24,
+      "brier": 0.06467532632026439,
+      "logloss": 0.20439586998001577
+    },
+    "grid order": {
+      "races": 75,
+      "top3_overlap": 0.6666666666666666,
+      "exact_podium": 0.22666666666666666,
+      "brier": null,
+      "logloss": null
+    },
+    "place_error": {
+      "simulator": 3.2311770833333333,
+      "grid": 3.2825520833333335
+    }
+  },
+  "holdout": {
+    "simulator": {
+      "races": 60,
+      "top3_overlap": 0.6666666666666666,
+      "exact_podium": 0.2,
+      "brier": 0.06701003883495146,
+      "logloss": 0.20573277938420315
+    },
+    "blend": {
+      "races": 60,
+      "top3_overlap": 0.7000000000000001,
+      "exact_podium": 0.2833333333333333,
+      "brier": 0.061188970143032026,
+      "logloss": 0.19394184914765863
+    },
+    "grid logistic": {
+      "races": 60,
+      "top3_overlap": 0.6833333333333332,
+      "exact_podium": 0.25,
+      "brier": 0.06275292503266067,
+      "logloss": 0.21415721042143754
+    },
+    "simulator + blend": {
+      "races": 60,
+      "top3_overlap": 0.688888888888889,
+      "exact_podium": 0.25,
+      "brier": 0.06254862965394348,
+      "logloss": 0.1955142848130333
+    },
+    "grid order": {
+      "races": 60,
+      "top3_overlap": 0.6833333333333332,
+      "exact_podium": 0.25,
+      "brier": null,
+      "logloss": null
+    },
+    "place_error": {
+      "simulator": 3.189349514563107,
+      "grid": 3.156957928802589
+    }
+  },
+  "brier_difference": {
+    "simulator minus blend": {
+      "diff": 0.0059149738110709105,
+      "low": 0.0017929038081289392,
+      "high": 0.010117527582317995
+    },
+    "simulator minus grid logistic": {
+      "diff": 0.004268250524460942,
+      "low": -0.0021732083656286504,
+      "high": 0.010717264899411657
+    }
+  },
+  "replay": {
+    "races": 75,
+    "spearman": 0.8166765027198464,
+    "mean_place_error": 2.1259598178452666,
+    "winner_right": 0.5866666666666667,
+    "top3_overlap": 0.6399999999999999
+  },
+  "replay_true_pace": {
+    "races": 75,
+    "spearman": 0.8908954259916884,
+    "mean_place_error": 1.4757113044048027,
+    "winner_right": 0.6533333333333333,
+    "top3_overlap": 0.8177777777777777
+  },
+  "fitted": {
+    "compound_offset_s": {
+      "SOFT": -0.125,
+      "MEDIUM": 0.0,
+      "HARD": 0.041
+    },
+    "wear_s_per_lap": {
+      "SOFT": 0.057,
+      "MEDIUM": 0.055,
+      "HARD": 0.044
+    },
+    "fuel_and_track_s_per_lap": -0.055,
+    "pit_loss_s": 22.5
+  }
+}

@@ -1,0 +1,214 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Slipstream Race lab</title><link rel="icon" href="../favicon-light.svg" type="image/svg+xml" media="(prefers-color-scheme: light)"><link rel="icon" href="../favicon-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700;900&display=swap" rel="stylesheet"><script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script><script defer src="/_vercel/insights/script.js"></script><style>
+:root{--red:#E10600;--red-deep:#CA0500;--red-tint:#F6B4B2;
+--bg:#15151E;--lime:#E9F877;--surface:#26262B;--surface-2:#303037;--rule:#47464C;
+--text:#FFFFFF;--muted:#AAAAAA;--tag:var(--red-tint);--chrome-lo:#8A8A92;--chrome-hi:#FFFFFF;--chrome-edge:rgba(255,255,255,.18);
+--display:"Formula1","Titillium Web",system-ui,sans-serif;--body:"Titillium Web",system-ui,sans-serif}
+@media (prefers-color-scheme:light){:root{--bg:#F7F4F1;--lime:#6B7300;--surface:#FFFFFF;--surface-2:#E0DEDC;--rule:#CDCDCD;
+--text:#15151E;--muted:#606066;--tag:var(--red-deep);--chrome-lo:#15151E;--chrome-hi:#5A5A62;--chrome-edge:rgba(0,0,0,.12)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:600 14px/16px var(--body)}
+::selection{background:var(--red);color:#FFFFFF}
+:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+main{max-width:973px;margin:0 auto;padding:24px 16px 48px}
+@media(min-width:735px){main{padding:32px 24px 64px}}
+@media(min-width:1069px){main{padding:32px 32px 64px}}
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 32px;
+padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.brand{font:900 16px/22px var(--display);text-transform:uppercase;letter-spacing:.5px;margin:0}
+.top{flex-wrap:wrap}
+.nav{display:flex;gap:4px;margin-right:auto}
+.nav a{color:var(--muted);text-decoration:none;font:600 14px/20px var(--body);padding:12px;min-height:44px;box-sizing:border-box;
+border-bottom:2px solid transparent;margin-bottom:-14px}
+.nav a:hover{color:var(--text)}
+.nav a[aria-current=page]{color:var(--text);border-bottom-color:#E10600}
+.back{color:var(--text);text-decoration:none;border:1px solid var(--rule);border-radius:4px;padding:4px 12px;
+font:600 14px/20px var(--body);transition:background-color .15s cubic-bezier(.4,0,.2,1)}
+.back:hover{background:var(--surface-2)}
+.brand a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.brand .logo{flex:none;width:.8em;height:.8em}
+.brand .hl{stroke:var(--text)}
+.brand a:hover{text-decoration:underline;text-underline-offset:4px}
+h1{font:900 32px/38px var(--display);text-transform:uppercase;text-wrap:balance;margin:0 0 12px}
+@media(min-width:735px){h1{font-size:40px;line-height:44px}}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;color:var(--muted);margin:0 0 16px}
+.tag{background:rgb(225,6,0);color:#FFFFFF;border-radius:999px;padding:2px 12px;
+font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px}
+.tag.back{background:var(--text);color:var(--bg)}
+.claim{font:400 16px/24px var(--body);max-width:68ch;margin:0 0 32px}
+.summary{font:600 16px/24px var(--body);margin:0 0 16px}
+.label{font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 12px}
+.podium{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:48px}
+@media(min-width:735px){.podium{grid-template-columns:repeat(3,1fr);align-items:end}
+.card.p1{order:2;min-height:460px}.card.p2{order:1;min-height:420px}.card.p3{order:3;min-height:380px}}
+.card{display:flex;flex-direction:column;color:var(--on,var(--text));
+clip-path:polygon(0 32px,56px 0,100% 0,100% 100%,0 100%)}
+.cbody{flex:1;display:flex;flex-direction:column;gap:8px;padding:32px 16px 16px;
+background:linear-gradient(200deg,var(--accent,var(--surface-2)) 0%,var(--card-bg,var(--surface-2)) 45%)}
+.cname{background:var(--accent,var(--surface-2));color:var(--on-accent,var(--text));padding:12px 16px}
+.pick{font:900 64px/64px var(--display);text-transform:uppercase;margin:0;color:var(--on-accent,var(--text))}
+.first{font:600 14px/16px var(--body);text-transform:uppercase;letter-spacing:.5px;margin:0}
+.last{font:900 26px/30px var(--display);text-transform:uppercase;margin:0;overflow-wrap:anywhere}
+.team{font:600 14px/16px var(--body);margin:0}
+.score{margin-top:auto;padding-top:16px}
+.pct{font:700 36px/40px var(--body);margin:0;color:var(--accent,inherit);font-variant-numeric:tabular-nums}
+.sub{font:600 14px/16px var(--body);margin:0}
+.sub.win{margin-top:4px;font-variant-numeric:tabular-nums}
+.outcome{margin:0;display:flex;align-items:center;gap:8px;font:600 16px/20px var(--body)}
+.why{margin:0;padding:0;list-style:none;font:600 14px/20px var(--body)}
+.why b{display:inline-block;width:12px;font-weight:400}
+.mark{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:4px;
+font:500 12px/18px var(--display);letter-spacing:.5px;text-transform:uppercase}
+.mark.miss{border-style:dashed}
+td .mark.miss{border-color:var(--muted);color:var(--muted)}
+td .mark{border-color:var(--text)}
+table{width:100%;border-collapse:collapse}
+.scroll{overflow-x:auto;scrollbar-color:var(--rule) transparent}
+th,td{padding:12px 6px;text-align:left;border-bottom:1px solid var(--rule)}
+th{font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding-bottom:8px}
+td{height:44px;transition:background-color .15s cubic-bezier(.4,0,.2,1)}
+tbody tr:hover td{background:var(--surface-2)}
+.num{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.fin{white-space:nowrap}
+.fin .mark{margin-right:20px;min-width:52px;text-align:center}
+.fin .pos{display:inline-block;min-width:3ch;text-align:right;color:var(--lime)}
+@media(min-width:735px){.fin .mark{margin-right:28px}}
+.cell{display:flex;align-items:center;gap:12px;font:500 16px/22px var(--display);text-transform:uppercase}
+.sv{flex:none;width:4px;height:24px;background:var(--team);box-shadow:inset 0 0 0 1px var(--rule)}
+.unmapped .sv{background:transparent;box-shadow:inset 0 0 0 1px var(--muted)}
+.team-col{display:none;color:var(--muted)}
+@media(min-width:735px){.team-col{display:table-cell}th,td{padding:12px 8px}}
+.pb{display:flex;align-items:center;gap:8px}
+@media(min-width:735px){.pb{gap:12px}}
+.bar{flex:1;height:8px;background:var(--surface-2);border-radius:4px;min-width:32px}
+@media(min-width:735px){.bar{min-width:120px}}
+.bar i{display:block;height:100%;min-width:2px;background:var(--red);border-radius:4px;
+animation:grow .3s cubic-bezier(.4,0,.2,1) both;animation-delay:calc(var(--i)*30ms)}
+@keyframes grow{from{width:0}}
+.pv{flex:none;width:48px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.made{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:48px 0 0;padding-top:16px;border-top:1px solid var(--rule);color:var(--muted);font:600 14px/20px var(--body)}
+.made .gh{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:-12px -10px -12px 0;color:var(--text);text-decoration:none}
+.made .gh:hover,.made .gh:focus-visible{color:var(--muted)}
+.made a:not(.gh){color:var(--text);font-weight:700;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}
+@supports (background-clip:text) or (-webkit-background-clip:text){
+.made a:not(.gh){background:repeating-linear-gradient(105deg,var(--chrome-lo) 0,var(--chrome-hi) 9px,var(--chrome-lo) 18px) 0 0/300% 100%;
+-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+font:900 17px/20px var(--body);transition:background-position .8s cubic-bezier(.4,0,.2,1);
+filter:drop-shadow(0 1px 0 var(--chrome-edge))}
+.made a:not(.gh):hover,.made a:not(.gh):focus-visible{background-position:-9px 0}}
+.tabs{display:flex;gap:24px;border-bottom:1px solid var(--rule);margin:0 0 16px}
+.tabs[hidden]{display:none}
+.tab{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:14px 0;cursor:pointer;
+color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px}
+.tab:hover,.tab[aria-selected=true]{color:var(--text)}
+.tab[aria-selected=true]{border-bottom-color:var(--text)}
+.tab .n{margin-left:8px;font-variant-numeric:tabular-nums}
+.tabbed .plabel{display:none}
+.races .soon{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 16px;padding:16px}
+.dot.wait{background:rgb(255,135,0)}
+.panel[hidden]{display:none}
+.races{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:12px}
+.races>li{border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.races summary{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:4px 16px;padding:16px;cursor:pointer;
+list-style:none;transition:background-color .15s cubic-bezier(.4,0,.2,1)}
+.races summary::-webkit-details-marker{display:none}
+.races summary:hover{background:var(--surface-2)}
+.races summary::after{content:"";width:8px;height:8px;border:solid var(--muted);border-width:0 2px 2px 0;transform:rotate(45deg);
+transition:transform .2s cubic-bezier(.4,0,.2,1)}
+.races details[open] summary::after{transform:rotate(-135deg)}
+.races .ev{font:700 20px/24px var(--display);text-transform:uppercase}
+.races .meta2{color:var(--muted);font:600 14px/20px var(--body);margin:0}
+.races .when{color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;text-align:right}
+.races .when-top{display:inline-flex;align-items:center;gap:8px}
+.dot{flex:none;width:10px;height:10px;border-radius:50%;background:rgb(225,6,0)}
+.dot.over{background:var(--text)}
+.races .rbody{padding:16px;border-top:1px solid var(--rule)}
+.races .open{display:inline-block;color:var(--text);font:600 14px/20px var(--body)}
+@media(prefers-reduced-motion:reduce){.races summary::after{transition:none}}
+.method{margin-top:64px}
+.method h3{font:700 20px/24px var(--body);margin:32px 0 8px}
+.mtext{max-width:68ch}
+.method p,.method li{font:400 16px/24px var(--body);margin:0 0 12px}
+.method ul{margin:0 0 12px;padding-left:20px}
+.method li{margin-bottom:8px}
+.method .scroll{margin:16px 0;max-width:none}
+.method caption{caption-side:top;text-align:left;color:var(--muted);font:600 14px/20px var(--body);padding-bottom:8px}
+@media(min-width:735px){.mrow{display:grid;grid-template-columns:180px minmax(0,68ch);gap:0 32px;
+border-top:1px solid var(--rule);margin-top:24px;padding-top:24px}
+.method h3{margin:0}.mtext>:last-child{margin-bottom:0}}
+.insights{margin:16px 0 48px;padding:0 0 0 20px}
+.insights li{font:400 16px/24px var(--body);margin:0 0 8px;break-inside:avoid}
+@media(min-width:735px){.insights{column-count:2;column-gap:40px}}
+.note{color:var(--muted);font:400 14px/20px var(--body);margin:32px 0 0}
+.intro{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;
+gap:8px;padding:24px 0;background:var(--bg);transition:opacity .3s cubic-bezier(.4,0,.2,1)}
+.intro-pending .intro{display:flex}
+.intro-pending body{overflow:hidden}
+.intro.done{opacity:0;pointer-events:none}
+.intro-title{font:900 40px/44px var(--display);text-transform:uppercase;margin:0}
+.intro-sub{color:var(--muted);font:600 14px/20px var(--body);margin:0 0 24px}
+.track{position:relative;width:100%;height:110px;overflow:hidden}
+.track::after{content:"";position:absolute;left:0;right:0;bottom:10px;height:2px;
+background:repeating-linear-gradient(90deg,var(--rule) 0 24px,transparent 24px 40px)}
+.rig{position:absolute;left:calc(50% - 80px);bottom:6px;width:160px}
+.rig .car{display:block;width:160px;height:auto}
+.go .rig{animation:drive 1.7s linear forwards}
+@keyframes drive{0.00%{transform:translate3d(0.00vw,0px,0) rotate(-2.2deg)}7.14%{transform:translate3d(7.14vw,-4px,0) rotate(1.6deg)}14.29%{transform:translate3d(14.29vw,-1px,0) rotate(-1.2deg)}21.43%{transform:translate3d(21.43vw,-5px,0) rotate(2.0deg)}28.57%{transform:translate3d(28.57vw,0px,0) rotate(-2.2deg)}35.71%{transform:translate3d(35.71vw,-4px,0) rotate(1.6deg)}42.86%{transform:translate3d(42.86vw,-1px,0) rotate(-1.2deg)}50.00%{transform:translate3d(50.00vw,-5px,0) rotate(2.0deg)}57.14%{transform:translate3d(57.14vw,0px,0) rotate(-2.2deg)}64.29%{transform:translate3d(64.29vw,-4px,0) rotate(1.6deg)}71.43%{transform:translate3d(71.43vw,-1px,0) rotate(-1.2deg)}78.57%{transform:translate3d(78.57vw,-5px,0) rotate(2.0deg)}85.71%{transform:translate3d(85.71vw,0px,0) rotate(-2.2deg)}92.86%{transform:translate3d(92.86vw,-4px,0) rotate(1.6deg)}100.00%{transform:translate3d(100.00vw,-1px,0) rotate(-1.2deg)}}
+.rig .car{filter:drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+.smoke{position:absolute;left:0;bottom:2px;width:0;height:0}
+.smoke i{position:absolute;left:0;bottom:0;width:26px;height:26px;border-radius:50%;background:var(--muted);opacity:0;filter:blur(6px)}
+.go .smoke i{animation:puff .8s ease-out infinite}
+.smoke i:nth-child(2){animation-delay:.14s;width:32px;height:32px}
+.smoke i:nth-child(3){animation-delay:.28s}
+.smoke i:nth-child(4){animation-delay:.42s;width:38px;height:38px}
+.smoke i:nth-child(5){animation-delay:.56s;width:30px;height:30px}
+@keyframes puff{0%{opacity:0;transform:translate(0,0) scale(.3)}25%{opacity:.4}100%{opacity:0;transform:translate(-100px,-26px) scale(2.2)}}
+.intro-actions{margin-top:24px}
+.skip{background:none;color:var(--muted);border:1px solid var(--rule);border-radius:4px;padding:8px 16px;cursor:pointer;
+font:600 14px/24px var(--body);transition:background-color .15s cubic-bezier(.4,0,.2,1)}
+.skip:hover{background:var(--surface-2)}
+@media(min-width:735px){.intro-title{font-size:56px;line-height:60px}.rig{left:calc(50% - 130px);width:260px}.rig .car{width:260px}.track{height:150px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.lab-grid{display:grid;gap:16px;margin:0 0 32px}
+@media(min-width:735px){.lab-grid{grid-template-columns:1fr 1fr}}
+.lab-grid .scroll{margin:0}
+.verdict{border-left:2px solid #E10600;padding:4px 0 4px 16px;margin:24px 0}
+.verdict p{margin:0}
+.soon-list{list-style:none;padding:0;margin:0}
+.soon-list li{padding:12px 0;border-top:1px solid var(--rule)}
+.soon-list b{font-weight:700}
+</style></head><body><main>
+<header class="top"><p class="brand"><a href="https://github.com/ceejt/Slipstream" target="_blank" rel="noopener noreferrer" aria-label="Slipstream, source code on GitHub (opens in a new tab)"><svg class="logo" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M30 16C30 19.713 28.525 23.274 25.8995 25.8995C23.274 28.525 19.713 30 16 30C12.287 30 8.72601 28.525 6.1005 25.8995C3.475 23.274 2 19.713 2 16C2 12.287 3.475 8.72601 6.1005 6.1005C8.72601 3.475 12.287 2 16 2C19.713 2 23.274 3.475 25.8995 6.1005C28.525 8.72601 30 12.287 30 16Z" stroke-width="2.5" stroke="#E10600"/><path class="hl" d="M30 16C30 19.713 28.525 23.274 25.8995 25.8995C23.274 28.525 19.713 30 16 30C12.287 30 8.72601 28.525 6.1005 25.8995C3.475 23.274 2 19.713 2 16C2 12.287 3.475 8.72601 6.1005 6.1005C8.72601 3.475 12.287 2 16 2C19.713 2 23.274 3.475 25.8995 6.1005C28.525 8.72601 30 12.287 30 16Z" stroke-width="0.5"/><path d="M26 6L21 10H13C11.5 10 10.5 10.5 9.5 11.5L8.5 12.5C7 14 8 16 10 16H22C24 16 25 18 23.5 19.5L22.5 20.5C21.5 21.5 20.5 22 19 22H11L6 26" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke="#E10600"/><path class="hl" d="M26 6L21 10H13C11.5 10 10.5 10.5 9.5 11.5L8.5 12.5C7 14 8 16 10 16H22C24 16 25 18 23.5 19.5L22.5 20.5C21.5 21.5 20.5 22 19 22H11L6 26" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Slipstream</a></p><nav class="nav" aria-label="Sections"><a href="../index.html">Podium predictor</a><a href="../lab/index.html" aria-current=page>Race lab</a></nav></header>
+<h1>Race lab</h1>
+<p class="claim">A lap-by-lap race simulator built from public lap data. It is separate from the podium predictions: those come from a model trained on results, this one replays the race. Status: the simulator is built and tested. Strategy and championship tools are not built yet.</p>
+<div class="method">
+<h3>What it learned from 80 races</h3>
+<p>Lap times, tyre stints and pit stops for every race since 2023 come from OpenF1. For each race the lab fits the pace of every driver, how much slower or faster each tyre is, how fast it wears, and how much time a pit stop costs. Wet races (7) are left out, because the tyre model is for dry running. For each target race only earlier races are used.</p>
+<div class="lab-grid"><div class="scroll"><table><caption>Fitted from earlier races</caption><thead><tr><th scope="col">Tyre compound</th><th scope="col" class="num">vs medium</th><th scope="col" class="num">Wear per lap</th></tr></thead><tbody><tr><td>Soft</td><td class="num">-0.12 s</td><td class="num">0.057 s</td></tr><tr><td>Medium</td><td class="num">+0.00 s</td><td class="num">0.055 s</td></tr><tr><td>Hard</td><td class="num">+0.04 s</td><td class="num">0.044 s</td></tr></tbody></table></div><div class="scroll"><table><caption>Fitted from earlier races</caption><thead><tr><th scope="col">Quantity</th><th scope="col" class="num">Value</th></tr></thead><tbody><tr><td>Time lost in a pit stop</td><td class="num">22.5 s</td></tr><tr><td>Fuel burn and track grip</td><td class="num">-0.055 s per lap</td></tr></tbody></table></div></div>
+<h3>Does it reproduce real races?</h3>
+<p>Two checks. The first replays a real race with the real pit stops and retirements, to test the lap-by-lap mechanics. Given the race's own pace the simulator puts finishers in nearly the right order. With pace forecast from earlier races and the qualifying gap, it loses accuracy, so the pace forecast is the weaker part.</p>
+<div class="scroll"><table><caption>75 dry races, drivers who finished</caption><thead><tr><th scope="col">Run</th><th scope="col" class="num">Rank correlation</th><th scope="col" class="num">Places off</th><th scope="col" class="num">Winner right</th></tr></thead><tbody><tr><td>Real stops and retirements, race pace known</td><td class="num">0.89</td><td class="num">1.5</td><td class="num">65.3%</td></tr><tr><td>Real stops and retirements, pace forecast</td><td class="num">0.82</td><td class="num">2.1</td><td class="num">58.7%</td></tr></tbody></table></div>
+<p>The second check is a forecast with nothing known about the race: forecast pace, typical strategies, random retirements and safety cars, 500 simulated races each. Each driver's podium chance is how often they finish in the top three. The margin for passing and the pace spread were tuned on 2023 only.</p>
+<div class="scroll"><table><caption>60 races, 2024 onward</caption><thead><tr><th scope="col">Method</th><th scope="col" class="num">Top-3 overlap</th><th scope="col" class="num">Exact podium</th><th scope="col" class="num">Brier score</th><th scope="col" class="num">Log loss</th></tr></thead><tbody><tr><td>Race simulator</td><td class="num">66.7%</td><td class="num">20.0%</td><td class="num">0.067</td><td class="num">0.206</td></tr><tr><td>Podium model (Slipstream)</td><td class="num">70.0%</td><td class="num">28.3%</td><td class="num">0.061</td><td class="num">0.194</td></tr><tr><td>Formula on grid position only</td><td class="num">68.3%</td><td class="num">25.0%</td><td class="num">0.063</td><td class="num">0.214</td></tr><tr><td>Simulator and podium model averaged</td><td class="num">68.9%</td><td class="num">25.0%</td><td class="num">0.063</td><td class="num">0.196</td></tr><tr><td>First three on the grid</td><td class="num">68.3%</td><td class="num">25.0%</td><td class="num">n/a</td><td class="num">n/a</td></tr></tbody></table></div>
+<div class="verdict"><p><b>As a podium forecaster, the simulator is worse than the podium model and not clearly different from a formula on grid position alone.</b> Brier score difference to the podium model: +0.0059 (95% interval +0.0018 to +0.0101). To the grid formula: +0.0043 (95% interval -0.0022 to +0.0107). Negative means the simulator is better. Intervals come from resampling whole races, on the seasons it was not tuned on.</p></div>
+<p>What this means: the simulator is a fair podium forecaster but not a better one. Its strength is a different one: it produces whole races, so it can test a pit stop plan or play out a season, which the podium model cannot. The next steps build on that.</p>
+<h3>How it works</h3>
+<ul>
+<li>Each lap a car's time is its pace, plus the tyre offset, plus tyre wear, plus the fuel slope, plus noise.</li>
+<li>A car cannot pass the one ahead unless it is faster by a margin. Otherwise it is held behind it.</li>
+<li>A pit stop costs the pit loss and changes the tyre. Under a safety car it costs less.</li>
+<li>Cars can retire, using each driver's and team's past retirement rate, and a safety car can close up the field, using each circuit's past rate.</li>
+<li>The whole field follows one typical strategy per simulated race, taken from earlier races at that circuit, with small differences in stop laps.</li>
+<li>Not modelled: rain, tyre warm-up, damage, penalties during the race, team orders and the effect of fuel on tyre wear.</li>
+</ul>
+<h3>Next</h3>
+<ul class="soon-list">
+<li><b>Championship forecast.</b> Run the simulator for each remaining race of the season, thousands of times, and count points.</li>
+<li><b>Pit strategy optimiser.</b> Search stop counts, tyre choices and stop laps, and compare undercut and overcut.</li>
+<li><b>Later.</b> Live track map from OpenF1 positions, a fantasy score for the podium model, and a race engineer game.</li>
+</ul>
+</div>
+<footer class="made"><span>Made by <a href="https://ceejt-portfolio.vercel.app/" target="_blank" rel="noopener noreferrer">ceejt</a></span><a class="gh" href="https://github.com/ceejt/Slipstream" target="_blank" rel="noopener noreferrer" aria-label="Slipstream on GitHub" title="Slipstream on GitHub"><svg viewBox="0 0 16 16" width="24" height="24" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></footer>
+</main></body></html>
