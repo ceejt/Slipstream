@@ -103,3 +103,38 @@ def test_a_pitting_car_is_not_held_up_by_the_car_it_is_behind():
     s.pit_loss = 22.0
     rank = simulate(s, n=20, seed=1)
     assert (rank[:, 1] != rank[:, 0]).all()
+
+
+def _sample_forecast():
+    path = {"mean": [10.0, 20.0], "low": [10.0, 15.0], "high": [10.0, 25.0]}
+    row = lambda n, t: {"name": n, "team": t, "now": 10.0, "expected": 20.0, "low": 15.0, "high": 25.0, "p_title": 0.5, "path": path}
+    return {"year": 2026, "after_round": 19, "races_left": 1, "simulations": 10, "remaining": [{"round": 20, "event": "Brazilian Grand Prix", "sprint": False}],
+            "drivers": [row("AAA", "Mercedes"), row("BBB", "Mercedes")], "constructors": [row("Mercedes", "Mercedes")],
+            "driver_title_clinched": False, "constructor_title_clinched": False}
+
+
+def test_lab_chart_data_embeds_safely_and_marks_a_teammate_dashed():
+    import json
+    from f1pred.lab import charts
+    data, css = charts.build(_sample_forecast(), None)
+    d = json.loads(data.replace("<\\/", "</"))
+    assert [r["dash"] for r in d["ch"]["drivers"]] == [False, True]
+    assert d["ch"]["labels"] == ["Now", "Brazilian"] and ".c-AAA" in css and "prefers-color-scheme:light" in css
+    assert "</script" not in data.lower()
+
+
+def test_lab_page_works_with_and_without_the_forecasts():
+    from f1pred.lab import report
+    ev = {"races": 5, "races_fitted": 6, "wet_races_skipped": 1, "tuned_on": 2023, "simulations_per_race": 10,
+          "fitted": {"compound_offset_s": {"SOFT": -0.1, "MEDIUM": 0.0, "HARD": 0.05}, "wear_s_per_lap": {"SOFT": 0.05, "MEDIUM": 0.05, "HARD": 0.04},
+                     "pit_loss_s": 22.0, "fuel_and_track_s_per_lap": -0.05},
+          "holdout": {k: {"races": 3, "top3_overlap": 0.6, "exact_podium": 0.2, "brier": 0.07, "logloss": 0.2}
+                      for k in ("simulator", "blend", "grid logistic", "simulator + blend", "grid order")},
+          "replay": {"races": 3, "spearman": 0.8, "mean_place_error": 2.0, "winner_right": 0.5},
+          "replay_true_pace": {"races": 3, "spearman": 0.9, "mean_place_error": 1.0, "winner_right": 0.6},
+          "brier_difference": {"simulator minus blend": {"diff": 0.01, "low": 0.0, "high": 0.02},
+                               "simulator minus grid logistic": {"diff": 0.0, "low": -0.01, "high": 0.01}}}
+    bare = report.render(ev)
+    assert 'id="fan-root"' not in bare and 'id="checks"' in bare
+    full = report.render(ev, _sample_forecast())
+    assert 'id="fan-root"' in full and 'id="lab-data"' in full and 'aria-label="On this page"' in full

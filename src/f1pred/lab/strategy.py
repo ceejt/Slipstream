@@ -48,8 +48,9 @@ def evaluate(s, car, plan, n, seed):
     """Expected points, expected position, podium and win chance for `car` on `plan` (None: a typical plan)."""
     s.forced = None if plan is None else {car: plan}
     r = simulate(s, n=n, seed=seed)[:, car]
+    dist = [float((r == k).mean()) for k in range(1, 11)] + [float((r > 10).mean())]  # P1 to P10, then 11th or lower
     return {"points": float(_points(r, POINTS).mean()), "position": float(r.mean()),
-            "podium": float((r <= 3).mean()), "win": float((r == 1).mean())}
+            "podium": float((r <= 3).mean()), "win": float((r == 1).mean()), "dist": [round(x, 3) for x in dist]}
 
 
 def optimise(s, car, L, n_screen=300, n_final=1500, seed=0, step=5, keep=6):
@@ -70,6 +71,32 @@ def optimise(s, car, L, n_screen=300, n_final=1500, seed=0, step=5, keep=6):
     scored.sort(key=lambda x: -x[0]["points"])
     base = evaluate(s, car, None, n_final, seed + 1)
     return base, [{**describe(p), **m} for m, p in scored[:5]]
+
+
+ORDERS = [("SOFT", "MEDIUM"), ("SOFT", "HARD"), ("MEDIUM", "SOFT"), ("MEDIUM", "HARD"), ("HARD", "SOFT"), ("HARD", "MEDIUM")]
+
+
+def heatmap(s, car, L, n=600, seed=2):
+    """Expected points for every one-stop plan on a fine grid of stop laps, plus the best two-stop plan."""
+    laps = list(range(int(0.2 * L), int(0.8 * L) + 1, 2))
+    cells = [[evaluate(s, car, ([lap], list(o)), n, seed) for lap in laps] for o in ORDERS]
+    two = candidates(L, 6)
+    two = [p for p in two if len(p[0]) == 2]
+    best = max(two, key=lambda p: evaluate(s, car, p, 200, seed)["points"])
+    return {"laps": laps, "orders": [list(o) for o in ORDERS],
+            "points": [[round(c["points"], 2) for c in row] for row in cells],
+            "podium": [[round(c["podium"], 3) for c in row] for row in cells],
+            "win": [[round(c["win"], 3) for c in row] for row in cells],
+            "dist": [[c["dist"] for c in row] for row in cells],
+            "best_two": {**describe(best), **evaluate(s, car, best, n, seed)}}
+
+
+def typical_plan(plans):
+    """The most common plan in the pool, with the median stop laps: what the field would usually do."""
+    from collections import Counter
+    key = Counter((len(l), tuple(c)) for l, c in plans).most_common(1)[0][0]
+    same = [l for l, c in plans if (len(l), tuple(c)) == key]
+    return {"stops": key[0], "laps": [int(np.median([x[i] for x in same])) for i in range(key[0])], "tyres": list(key[1])}
 
 
 def undercut_curve(setup, gap, shifts=range(-4, 5), n=1500, seed=0):
@@ -130,7 +157,7 @@ def run(codes=None, n_final=1500):
         base_m, best = optimise(s, car, L, n_final=n_final)
         grid = None if not has_grid else int(rows["grid"].iloc[car])
         drivers.append({"driver": rows["Abbreviation"].iloc[car], "team": rows["TeamName"].iloc[car], "grid": grid,
-                        "typical": base_m, "best": best})
+                        "typical": base_m, "typical_plan": typical_plan(s.plans), "best": best, "heat": heatmap(s, car, L)})
         print(drivers[-1]["driver"], "typical", round(base_m["points"], 2), "best", best[0], flush=True)
     s.forced, s.grid, s.pace = None, np.arange(1, len(rows) + 1), np.zeros(len(rows))
     out = {"created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"), "year": year, "round": rnd,

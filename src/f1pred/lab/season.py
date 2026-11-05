@@ -62,12 +62,13 @@ def _laps(ctx, location):
 
 
 def season_points(ctx, year, after_round, n=2000, seed=0, margin=2.0, sd_scale=0.75):
-    """Points scored by each driver over the remaining rounds in every simulated season: (codes, teams, array n x cars)."""
+    """Points scored over the remaining rounds in every simulated season: (codes, teams, total n x cars, remaining races, per race R x n x cars)."""
     lineup = _lineup(ctx, year, after_round)
     codes, teams = list(lineup["Abbreviation"]), list(lineup["TeamName"])
     rng = np.random.default_rng(seed)
     D = len(codes)
     total = np.zeros((n, D))
+    by_race = []
     rest = [c for c in calendar(year) if c["round"] > after_round]
     shared = None
     for k, race in enumerate(rest):
@@ -80,12 +81,14 @@ def season_points(ctx, year, after_round, n=2000, seed=0, margin=2.0, sd_scale=0
         within = sd * sd_scale * np.sqrt(1 - SHARED ** 2)
         grid = np.argsort(np.argsort(base + rng.normal(0, within, (n, D)), axis=1), axis=1) + 1  # simulated qualifying
         s.pace, s.pace_sd, s.grid = base, within, grid
-        total += _points(simulate(s, n=n, seed=seed + k), POINTS)
+        got = _points(simulate(s, n=n, seed=seed + k), POINTS)
         if race["sprint"]:
             sp = Setup(**{**s.__dict__, "laps": max(int(L * SPRINT_SHARE), 5), "plans": [([], ["MEDIUM"])], "p_sc": 0.0,
                           "p_dnf": s.p_dnf * 0.3, "fixed": None})
-            total += _points(simulate(sp, n=n, seed=seed + 100 + k), SPRINT_POINTS)
-    return codes, teams, total, rest
+            got = got + _points(simulate(sp, n=n, seed=seed + 100 + k), SPRINT_POINTS)
+        by_race.append(got)
+        total += got
+    return codes, teams, total, rest, np.stack(by_race) if by_race else np.zeros((0, n, D))
 
 
 def _table(names, now, gained, groups=None):
@@ -101,13 +104,31 @@ def _table(names, now, gained, groups=None):
     return sorted(rows, key=lambda r: -r["expected"])
 
 
+def _add_paths(rows, names, now, per_race):
+    """Points after each remaining race: the average and a 5 to 95% band, starting from the points now."""
+    start = np.array([now.get(nm, 0.0) for nm in names])
+    cum = np.cumsum(per_race, axis=0) + start[None, None, :]
+    cut = lambda a: np.concatenate([start[None, :], a])
+    mean, low, high = cut(cum.mean(1)), cut(np.percentile(cum, 5, axis=1)), cut(np.percentile(cum, 95, axis=1))
+    for r in rows:
+        i = names.index(r["name"])
+        r["path"] = {"mean": [round(float(x), 1) for x in mean[:, i]], "low": [round(float(x), 1) for x in low[:, i]],
+                     "high": [round(float(x), 1) for x in high[:, i]]}
+
+
 def forecast(ctx, year, after_round, n=2000, seed=0):
-    codes, teams, pts, rest = season_points(ctx, year, after_round, n, seed)
+    codes, teams, pts, rest, per_race = season_points(ctx, year, after_round, n, seed)
     now_d, now_t = standings(year, after_round)
     team_list = sorted(set(teams))
     by_team = np.stack([pts[:, [i for i, t in enumerate(teams) if t == tm]].sum(1) for tm in team_list], 1)
     drivers = _table(codes, now_d, pts)
     constructors = _table(team_list, now_t, by_team)
+    team_of = dict(zip(codes, teams))
+    for r in drivers:
+        r["team"] = team_of[r["name"]]
+    by_team_race = np.stack([per_race[:, :, [i for i, t in enumerate(teams) if t == tm]].sum(2) for tm in team_list], 2)
+    _add_paths(drivers, codes, now_d, per_race)
+    _add_paths(constructors, team_list, now_t, by_team_race)
     left = sum(25 + (8 if c["sprint"] else 0) for c in rest)
     left_t = sum(43 + (15 if c["sprint"] else 0) for c in rest)
     def clinched(rows, room):

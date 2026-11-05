@@ -4,6 +4,7 @@ from html import escape
 
 from ..config import REPORTS
 from ..report import ANALYTICS, CREDIT, CSS, FAVICON, FONT_LINK, _top
+from . import charts
 from .season import CHAMPIONSHIP
 from .strategy import STRATEGY
 from .validate import LAB_EVALUATION
@@ -48,40 +49,26 @@ def _chance(p):
     return ">99.9%" if p > 0.999 else "<0.1%" if p < 0.001 else f"{p * 100:.1f}%"
 
 
-def _championship(ch, bt):
-    """The forecast tables and what the backtest says about them, or empty text if they were not made."""
-    if not ch:
-        return ""
-    def table(rows, cap, head, n):
+def _champ_tables(ch):
+    def table(rows, head, n):
         body = "".join(f'<tr><td>{r["name"]}</td><td class="num">{r["now"]:.0f}</td><td class="num">{r["expected"]:.0f}</td>'
                        f'<td class="num">{r["low"]:.0f} to {r["high"]:.0f}</td><td class="num">{_chance(r["p_title"])}</td></tr>' for r in rows[:n])
+        cap = f'After round {ch["after_round"]} of {ch["year"]}, {ch["races_left"]} races left, {ch["simulations"]:,} simulated seasons'
         return _table(cap, (head, "Points now", "Expected final", "90% range", "Title chance"), body)
-    left = ch["races_left"]
-    cap = f'After round {ch["after_round"]} of {ch["year"]}, {left} races left, {ch["simulations"]:,} simulated seasons'
-    notes = []
-    if ch["driver_title_clinched"]:
-        notes.append(f'The drivers\' title is already decided: {ch["drivers"][0]["name"]} leads by more than the points still available.')
-    if ch["constructor_title_clinched"]:
-        notes.append("The constructors' title is already decided.")
-    note = f'<p>{" ".join(notes)}</p>' if notes else ""
-    check = ""
-    if bt:
-        early = [b for b in bt if b["after_round"] <= 12]
-        late = [b for b in bt if b["after_round"] > 12]
-        avg = lambda rows, k: sum(r[k] for r in rows) / len(rows)
-        check = (f'<p>Checked on {len(bt)} points in the 2023 to 2025 seasons (after rounds 8 to 20), each time using only earlier races. '
-                 f'The average chance given to the real drivers\' champion was {avg(bt, "p_driver_champion") * 100:.0f}%, and to the real constructors\' champion '
-                 f'{avg(bt, "p_constructor_champion") * 100:.0f}%. The expected final points were off by {avg(early, "driver_points_error"):.0f} points on average '
-                 f'after rounds 8 and 12, against {avg(early, "extrapolation_error"):.0f} for assuming each driver keeps scoring at the rate so far. '
-                 f'Later in the season the two are about equal ({avg(late, "driver_points_error"):.0f} against {avg(late, "extrapolation_error"):.0f}). '
-                 'That is only three seasons, so treat the title chances as rough.</p>')
-    return f"""<h3>Championship forecast</h3>
-<p>The simulator runs every remaining race of the season, thousands of times, and adds up the points. Qualifying is simulated too, from the same pace forecast. Each simulated season also gives every driver a pace shift that lasts all its races, so a quick car stays quick. Retirements and safety cars are random, from past rates. Sprint races are included.</p>
-{note}
-{table(ch["drivers"], cap, "Driver", 8)}
-{table(ch["constructors"], cap, "Team", 5)}
-{check}
-"""
+    return table(ch["drivers"], "Driver", 8) + table(ch["constructors"], "Team", 5)
+
+
+def _champ_check(bt):
+    if not bt:
+        return ""
+    early = [b for b in bt if b["after_round"] <= 12]
+    late = [b for b in bt if b["after_round"] > 12]
+    avg = lambda rows, k: sum(r[k] for r in rows) / len(rows)
+    return (f'<b>Checked on {len(bt)} points in 2023 to 2025</b> (after rounds 8 to 20, using only earlier races). '
+            f'The real drivers\' champion was given {avg(bt, "p_driver_champion") * 100:.0f}% on average and the real constructors\' champion '
+            f'{avg(bt, "p_constructor_champion") * 100:.0f}%. Expected final points were {avg(early, "driver_points_error"):.0f} off after rounds 8 and 12, '
+            f'against {avg(early, "extrapolation_error"):.0f} for assuming each driver keeps scoring at the rate so far; later the two are about equal '
+            f'({avg(late, "driver_points_error"):.0f} against {avg(late, "extrapolation_error"):.0f}). Three seasons is little, so the title chances are rough.')
 
 
 def _plan(x):
@@ -90,10 +77,7 @@ def _plan(x):
     return f'{x["stops"]} stop, {tyres}, stop on lap {laps}' if x["stops"] == 1 else f'{x["stops"]} stops, {tyres}, stops on laps {laps}'
 
 
-def _strategy(st, chk):
-    """Best plans for the next race, the undercut table and what the check says about them."""
-    if not st:
-        return ""
+def _strategy_tables(st):
     pct = lambda v: f"{v * 100:.0f}%"
     tables = ""
     for d in st["drivers"]:
@@ -103,35 +87,49 @@ def _strategy(st, chk):
                         for x in d["best"][:3])
         grid = "qualifying not run, grid simulated" if d["grid"] is None else f'starting P{d["grid"]}'
         tables += _table(f'{d["driver"]} ({d["team"]}), {grid}', ("Plan", "Expected points", "Podium", "Win"), body)
-    u = st["undercut"]["1.0"]
     ks = ("-3", "-2", "-1", "0", "1", "2")
     head = ("Gap behind the car ahead", "3 laps earlier", "2 earlier", "1 earlier", "Same lap", "1 later", "2 later")
-    under = _table("Chance of finishing ahead, two cars level on pace", head, "".join(
+    tables += _table("Chance of finishing ahead, two cars level on pace", head, "".join(
         f'<tr><td>{g} s</td>' + "".join(f'<td class="num">{pct(st["undercut"][g][k])}</td>' for k in ks) + "</tr>" for g in ("1.0", "2.0")))
-    check = ""
-    if chk:
-        check = (f'<p>Does the simulator understand strategy? For {chk["drivers"]} drivers in {chk["races"]} past races, I compared how much better '
-                 f'the simulator thought their real plan was than a typical plan with how much further ahead they finished than the simulator expected. '
-                 f'The two do move together, but weakly: real gains were about {chk["slope"] * 100:.0f}% of what the simulator claimed '
-                 f'(95% interval {chk["low"] * 100:.0f}% to {chk["high"] * 100:.0f}%). Read the ranking of plans, not the size of the gain.</p>')
+    return tables
+
+
+def _strategy_notes(st, chk):
+    pct = lambda v: f"{v * 100:.0f}%"
+    u = st["undercut"]["1.0"]
+    out = ""
     firsts = {(tuple(d["best"][0]["tyres"]), d["best"][0]["stops"]) for d in st["drivers"]}
-    verdict = ""
     if len(firsts) == 1:
         (tyres, stops), laps = next(iter(firsts)), [d["best"][0]["laps"][0] for d in st["drivers"]]
-        verdict = (f'<p>All {len(st["drivers"])} drivers come out on the same plan: {stops} stop, {" then ".join(t.title() for t in tyres)}, first stop around lap {round(sum(laps) / len(laps))}. '
-                   'The fitted tyre wear is nearly the same for the soft and the medium, so the faster soft tyre wins as the start. '
-                   'Real soft tyres fall off more sharply than this straight-line wear can show, so the optimiser probably favours softs and long stints more than it should.</p>')
-    when = "Qualifying has not been run, so each simulated race draws its own grid from the pace forecast. " if not st["grid_known"] else "The grid is the real qualifying order. "
-    return f"""<h3>Pit strategy optimiser</h3>
-<p>For one driver, the simulator plays the race {st["simulations"]:,} times on each candidate plan: one or two stops, any order of tyres that uses at least two kinds, and stop laps in steps of a few laps. The rest of the field follows typical strategies. Every plan sees the same random draws, so plans are compared fairly. Plans are ranked by expected points.</p>
-<p><b>{escape(st["event"])}, {st["laps"]} laps, pit stop costs {st["pit_loss_s"]} s.</b> {when}Re-run after qualifying for the real grid.</p>
-{tables}
-{verdict}
-<h3>Undercut and overcut</h3>
-<p>Two cars level on pace, the second a set gap behind. The table shows how often the second car finishes ahead when it stops earlier (an undercut) or later (an overcut) than the first. At a one second gap, stopping on the same lap gives it {pct(u["0"])}; one lap earlier gives {pct(u["-1"])}, two laps earlier {pct(u["-2"])}; one lap later only {pct(u["1"])}. So in this simulator an undercut helps and an overcut does not. The simulator has no tyre warm-up on the out-lap and no traffic on rejoining, which are what make an overcut work in real races, and it probably overstates the undercut. Treat these as an upper bound for the undercut.</p>
-{under}
-{check}
-"""
+        out += (f'<p class="note"><b>Same answer for all {len(st["drivers"])} drivers:</b> {stops} stop, {" then ".join(t.title() for t in tyres)}, first stop around lap {round(sum(laps) / len(laps))}. '
+                'The fitted wear is nearly the same for the soft and the medium, so the faster soft tyre wins as the start. Real soft tyres fall off more sharply than straight-line wear can show, '
+                'so the optimiser probably favours softs and long stints more than it should.</p>')
+    if chk:
+        out += (f'<p class="note"><b>Checked on {chk["drivers"]} drivers in {chk["races"]} past races:</b> the simulator\'s view of a plan moves with how far ahead the driver finished, '
+                f'but real gains were about {chk["slope"] * 100:.0f}% of the simulated ones (95% interval {chk["low"] * 100:.0f}% to {chk["high"] * 100:.0f}%). Read the ranking of plans, not the size of the gain.</p>')
+    out += (f'<p class="note"><b>Undercut and overcut.</b> Two cars level on pace, one second apart: stopping on the same lap gives the car behind {pct(u["0"])} to finish ahead; '
+            f'one lap earlier {pct(u["-1"])}, two laps earlier {pct(u["-2"])}, one lap later {pct(u["1"])}. An undercut helps and an overcut does not. The simulator has no tyre warm-up on the out-lap and no traffic on rejoining, '
+            'so it probably overstates the undercut and cannot show an overcut. The full table is under "Show as tables".</p>')
+    return out
+
+
+def _tiles(ev, ch, st):
+    tiles = []
+    if ch:
+        lead = ch["drivers"][0]
+        v = f'{lead["name"]}, decided' if ch["driver_title_clinched"] else f'{lead["name"]} {_chance(lead["p_title"])}'
+        tiles.append(("Drivers' title", v, f'After round {ch["after_round"]} of {ch["year"]}, {ch["races_left"]} races left.'))
+    if st:
+        firsts = {(tuple(d["best"][0]["tyres"]), d["best"][0]["stops"]) for d in st["drivers"]}
+        if len(firsts) == 1:
+            (tyres, stops), = firsts
+            tiles.append((f'Best plan, {st["event"]}', f'{stops} stop', " then ".join(t.title() for t in tyres) + ", for the three fastest cars."))
+        else:
+            tiles.append((f'Best plan, {st["event"]}', "Differs", "The best plan is not the same for each driver."))
+    h = ev["holdout"]
+    tiles.append(("As a podium forecaster", f'{h["simulator"]["brier"]:.3f} vs {h["blend"]["brier"]:.3f}',
+                  f'Brier score of the simulator against the podium model over {h["simulator"]["races"]} races. Lower is better.'))
+    return '<div class="tiles">' + "".join(f'<div class="tile"><p class="k">{k}</p><p class="v">{v}</p><p class="c">{c}</p></div>' for k, v, c in tiles) + "</div>"
 
 
 def render(ev, ch=None, bt=None, st=None, chk=None):
@@ -156,39 +154,56 @@ def render(ev, ch=None, bt=None, st=None, chk=None):
     mech = _table(f'{rt["races"]} dry races, drivers who finished', ("Run", "Rank correlation", "Places off", "Winner right"), (
         f'<tr><td>Real stops and retirements, race pace known</td><td class="num">{rt["spearman"]:.2f}</td><td class="num">{rt["mean_place_error"]:.1f}</td><td class="num">{pct(rt["winner_right"])}</td></tr>'
         f'<tr><td>Real stops and retirements, pace forecast</td><td class="num">{rp["spearman"]:.2f}</td><td class="num">{rp["mean_place_error"]:.1f}</td><td class="num">{pct(rp["winner_right"])}</td></tr>'))
+    data, team_css = charts.build(ch, st)
+    nav = [("championship", "Championship"), ("strategy", "Pit strategy"), ("checks", "Checks"), ("method", "How it works")]
+    decided = ""
+    if ch:
+        tags = [n for n, k in (("Drivers' title decided", "driver_title_clinched"), ("Constructors' title decided", "constructor_title_clinched")) if ch[k]]
+        decided = "".join(f'<span class="decided">{t}</span> ' for t in tags)
+    champ = f"""<section class="sec" id="championship"><h2>Championship</h2>
+<p class="lead">Every remaining race of the season is simulated thousands of times and the points are added up. Lines are the average, shaded bands cover 90% of simulated seasons. Move over the chart, or use the arrow keys, to read each race. Click a name to show or hide it.</p>
+{decided}<div id="fan-root"></div>
+<p class="note">{_champ_check(bt)}</p>
+<details class="tables"><summary>Show as tables</summary>{_champ_tables(ch)}</details></section>""" if ch else ""
+    when = "Qualifying has not been run, so each simulated race draws its own grid from the pace forecast. " if st and not st["grid_known"] else "The grid is the real qualifying order. "
+    strat = f"""<section class="sec" id="strategy"><h2>Pit strategy</h2>
+<p class="lead">{escape(st["event"])}, {st["laps"]} laps, a pit stop costs {st["pit_loss_s"]} s. {when}Each square is a one-stop plan, played {st["simulations"]:,} times for the chosen driver while the rest of the field follows typical strategies. A stronger colour means more expected points. Move over the squares, or use the arrow keys.</p>
+<div id="heat-root"></div>
+{_strategy_notes(st, chk)}
+<details class="tables"><summary>Show as tables</summary>{_strategy_tables(st)}</details></section>""" if st else ""
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Slipstream Race lab</title>{FAVICON.replace('href="favicon', 'href="../favicon')}{FONT_LINK}{ANALYTICS}<style>{CSS}{LAB_CSS}</style></head><body><main>
+<title>Slipstream Race lab</title>{FAVICON.replace('href="favicon', 'href="../favicon')}{FONT_LINK}{ANALYTICS}<style>{CSS}{LAB_CSS}{charts.CSS}{team_css}</style></head><body><main>
 {_top(current="lab", root="../")}
 <h1>Race lab</h1>
-<p class="claim">A lap-by-lap race simulator built from public lap data. It is separate from the podium predictions: those come from a model trained on results, this one replays the race. Status: the simulator is built and tested. The championship forecast and the pit strategy optimiser are built.</p>
-<div class="method">
-<h3>What it learned from {ev["races_fitted"]} races</h3>
-<p>Lap times, tyre stints and pit stops for every race since 2023 come from OpenF1. For each race the lab fits the pace of every driver, how much slower or faster each tyre is, how fast it wears, and how much time a pit stop costs. Wet races ({ev["wet_races_skipped"]}) are left out, because the tyre model is for dry running. For each target race only earlier races are used.</p>
-<div class="lab-grid">{comp}{other}</div>
-<h3>Does it reproduce real races?</h3>
-<p>Two checks. The first replays a real race with the real pit stops and retirements, to test the lap-by-lap mechanics. Given the race's own pace the simulator puts finishers in nearly the right order. With pace forecast from earlier races and the qualifying gap, it loses accuracy, so the pace forecast is the weaker part.</p>
-{mech}
-<p>The second check is a forecast with nothing known about the race: forecast pace, typical strategies, random retirements and safety cars, {ev["simulations_per_race"]} simulated races each. Each driver's podium chance is how often they finish in the top three. The margin for passing and the pace spread were tuned on {ev["tuned_on"]} only.</p>
-{compare}
+<p class="claim">A lap-by-lap race simulator built from public lap data. It is separate from the podium predictions: those come from a model trained on results, this one replays the race.</p>
+{_tiles(ev, ch, st)}
+<nav class="subnav" aria-label="On this page">{"".join(f'<a href="#{i}">{t}</a>' for i, t in nav)}</nav>
+{champ}{strat}
+<section class="sec" id="checks"><h2>Checks</h2>
+<p class="lead">Every result above comes with the test it was put through. The simulator was tested on past races it had not seen, from {ev["races_fitted"]} dry races since 2023 (wet races, {ev["wet_races_skipped"]}, are left out).</p>
 <div class="verdict">{_verdict(ev)}</div>
-<p>What this means: the simulator is a fair podium forecaster but not a better one. Its strength is a different one: it produces whole races, so it can test a pit stop plan or play out a season, which the podium model cannot. The next steps build on that.</p>
-<h3>How it works</h3>
+<details class="tables"><summary>Show the tables</summary>
+<div class="lab-grid">{comp}{other}</div>
+{mech}
+{compare}
+</details>
+<p class="note">Replaying a real race with its real stops and retirements, and the race's own pace, puts finishers in nearly the right order. With pace forecast from earlier races it loses accuracy, so the pace forecast is the weak part. The simulator is a fair podium forecaster but not a better one; its use is that it produces whole races, which the podium model cannot.</p></section>
+<section class="sec method" id="method"><h2>How it works</h2>
 <ul>
 <li>Each lap a car's time is its pace, plus the tyre offset, plus tyre wear, plus the fuel slope, plus noise.</li>
-<li>A car cannot pass the one ahead unless it is faster by a margin. Otherwise it is held behind it.</li>
+<li>A car cannot pass the one ahead unless it is faster by a margin. Otherwise it is held behind it. A car in the pit lane is not held.</li>
 <li>A pit stop costs the pit loss and changes the tyre. Under a safety car it costs less.</li>
 <li>Cars can retire, using each driver's and team's past retirement rate, and a safety car can close up the field, using each circuit's past rate.</li>
 <li>The whole field follows one typical strategy per simulated race, taken from earlier races at that circuit, with small differences in stop laps.</li>
+<li>Pace is forecast from team and driver form and the qualifying gap. All fitting uses earlier races only.</li>
 <li>Not modelled: rain, tyre warm-up and sudden tyre drop-off, damage, penalties during the race, team orders and the effect of fuel on tyre wear.</li>
 </ul>
-{_championship(ch, bt)}{_strategy(st, chk)}<h3>Next</h3>
-<ul class="soon-list">
-<li><b>Later.</b> Live track map from OpenF1 positions, a fantasy score for the podium model, and a race engineer game.</li>
-</ul>
-</div>
+<h3>Next</h3>
+<ul class="soon-list"><li><b>Race replay.</b> A real race lap by lap against the simulated one, then an undercut explorer and validation charts. Later: a live track map, a fantasy score and a race engineer game.</li></ul>
+</section>
 {CREDIT}
-</main></body></html>"""
+</main><script type="application/json" id="lab-data">{data}</script><script>{charts.JS}</script></body></html>"""
 
 
 def write():
