@@ -58,9 +58,11 @@ class Context:
         return out
 
 
-def pace_for(ctx, race_id, rows):
-    """Forecast pace per driver (seconds per lap vs the field) and its uncertainty."""
-    coef, sd = model.pace_model(ctx.pace, race_id)
+def pace_for(ctx, race_id, rows, use_quali=True):
+    """Forecast pace per driver (seconds per lap vs the field) and its uncertainty.
+    use_quali=False is for races whose qualifying has not happened: only team and driver form are used."""
+    cols = model.PACE_X if use_quali else model.PACE_X[:2]
+    coef, sd = model.pace_model(ctx.pace, race_id, cols)
     hist = ctx.pace[ctx.pace["race_id"] < race_id]
     out = []
     for r in rows.itertuples():
@@ -68,33 +70,48 @@ def pace_for(ctx, race_id, rows):
         dh = hist[hist["driver"] == r.Abbreviation]["rel"].tail(model.FORM)
         gap = 0.0 if pd.isna(r.quali_time_s) else min(r.quali_gap_s, 3)
         x = np.array([th.mean() if len(th) else 0.0, dh.mean() if len(dh) else 0.0, gap if not pd.isna(gap) else 0.0])
-        out.append(float(x @ coef))
+        out.append(float(x[:len(cols)] @ coef))
     return np.array(out), sd
+
+
+def base_setup(ctx, y, r, rows, L, location, margin, sd_scale, lap_scale, use_quali=True):
+    """The parts of a race every run shares: forecast pace, tyre and pit numbers fitted on earlier races."""
+    rid = y * 100 + r
+    pace, sd = pace_for(ctx, rid, rows, use_quali)
+    p = model.pooled(ctx.fits, (y, r), ctx.losses, ctx.circuit, location)
+    s = Setup(laps=L, grid=rows["grid"].fillna(20).values.astype(int), pace=pace, pace_sd=sd * sd_scale,
+              comp_off=p["comp_off"], deg=p["deg"], fuel=p["fuel"], pit_loss=p["pit_loss"], pit_sd=min(p["pit_sd"], 3.0),
+              lap_sd=p["sigma"] * lap_scale, p_dnf=np.zeros(len(rows)), margin=margin)
+    return s, sd
+
+
+def add_random_events(ctx, y, r, rows, L, location, s):
+    """Retirements, safety cars and typical strategies, all from races before (y, r)."""
+    rid = y * 100 + r
+    base = np.nanmean(ctx.df[ctx.df["race_id"] < rid]["dnf"])
+    s.p_dnf = np.nan_to_num(0.5 * rows["driver_dnf_rate"].values + 0.5 * rows["team_dnf_rate"].values, nan=base)
+    past = [k for k in ctx.fits if k < (y, r)]
+    same = [k for k in past if ctx.circuit.get(k) == location]
+    g = np.mean([k in ctx.sc_races for k in past])
+    s.p_sc = (sum(k in ctx.sc_races for k in same) + 2 * g) / (len(same) + 2)
+    pool = [q for q in ctx.plans if (q["year"], q["round"]) < (y, r)]
+    near = [q for q in pool if q["circuit"] == location]
+    pool = pool + near * 4  # strategies at this circuit count five times
+    s.plans = [([int(round(f * L)) for f in q["frac"]], q["comps"]) for q in pool]
 
 
 def one_race(ctx, y, r, variant, n=500, margin=2.0, seed=0, sd_scale=0.75, lap_scale=0.5, ablate=()):
     rid = y * 100 + r
     rows = ctx.df[ctx.df["race_id"] == rid].reset_index(drop=True)
     L = ctx.laps_in_race[(y, r)]
-    pace, sd = pace_for(ctx, rid, rows)
-    p = model.pooled(ctx.fits, (y, r), ctx.losses, ctx.circuit, ctx.circuit[(y, r)])
+    location = ctx.circuit[(y, r)]
+    s, sd = base_setup(ctx, y, r, rows, L, location, margin, sd_scale, lap_scale)
     if variant == "replay-true":
         off = ctx.fits[(y, r)]["driver_off"]
-        pace = np.array([off.get(d, pace[i]) for i, d in enumerate(rows["Abbreviation"])])
-    s = Setup(laps=L, grid=rows["grid"].fillna(20).values.astype(int), pace=pace, pace_sd=sd * sd_scale * (0.0 if variant == "replay-true" else 1.0),
-              comp_off=p["comp_off"], deg=p["deg"], fuel=p["fuel"], pit_loss=p["pit_loss"], pit_sd=min(p["pit_sd"], 3.0),
-              lap_sd=p["sigma"] * lap_scale, p_dnf=np.zeros(len(rows)), margin=margin)
+        s.pace = np.array([off.get(d, s.pace[i]) for i, d in enumerate(rows["Abbreviation"])])
+        s.pace_sd = 0.0
     if variant == "forecast":
-        base = np.nanmean(ctx.df[ctx.df["race_id"] < rid]["dnf"])
-        s.p_dnf = np.nan_to_num(0.5 * rows["driver_dnf_rate"].values + 0.5 * rows["team_dnf_rate"].values, nan=base)
-        past = [k for k in ctx.fits if k < (y, r)]
-        same = [k for k in past if ctx.circuit.get(k) == ctx.circuit[(y, r)]]
-        g = np.mean([k in ctx.sc_races for k in past])
-        s.p_sc = (sum(k in ctx.sc_races for k in same) + 2 * g) / (len(same) + 2)
-        pool = [q for q in ctx.plans if (q["year"], q["round"]) < (y, r)]
-        near = [q for q in pool if q["circuit"] == ctx.circuit[(y, r)]]
-        pool = pool + near * 4  # strategies at this circuit count five times
-        s.plans = [([int(round(f * L)) for f in q["frac"]], q["comps"]) for q in pool]
+        add_random_events(ctx, y, r, rows, L, location, s)
     else:
         fixed, out = [], []
         for d, done in zip(rows["Abbreviation"], rows["dnf"]):

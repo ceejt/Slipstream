@@ -134,13 +134,14 @@ def pace_table(fits):
 PACE_X = ["team_form", "drv_form", "quali_gap"]
 
 
-def pace_model(t, race_id):
-    """Ridge fit on races before race_id: pace = a*team_form + b*drv_form + c*quali_gap. Returns (coef, residual sd)."""
+def pace_model(t, race_id, cols=PACE_X):
+    """Ridge fit on races before race_id: pace = a*team_form + b*drv_form + c*quali_gap. Returns (coef, residual sd).
+    cols can leave out the qualifying gap, for races whose qualifying has not happened."""
     tr = t[t["race_id"] < race_id].copy()
     tr[PACE_X] = tr[PACE_X].fillna(0)
     tr["quali_gap"] = tr["quali_gap"].clip(upper=3)
-    X, y = tr[PACE_X].values, tr["off"].values
-    coef = np.linalg.solve(X.T @ X + 5 * np.eye(len(PACE_X)), X.T @ y)
+    X, y = tr[cols].values, tr["off"].values
+    coef = np.linalg.solve(X.T @ X + 5 * np.eye(len(cols)), X.T @ y)
     return coef, float((y - X @ coef).std())
 
 

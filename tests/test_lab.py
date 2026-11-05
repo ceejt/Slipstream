@@ -57,3 +57,20 @@ def test_navbar_links_both_sections_and_marks_the_current_one():
     assert 'href="../index.html"' in top and 'href="../lab/index.html" aria-current=page' in top
     assert 'aria-current=page>Podium' not in top
     assert 'href="index.html" aria-current=page' in report._top()
+
+
+def test_points_follow_finishing_position():
+    from f1pred.lab.season import POINTS, _points
+    assert list(_points(np.array([1, 2, 10, 11]), POINTS)) == [25, 18, 1, 0]
+
+
+def test_table_splits_a_tied_title_and_orders_by_expected_points():
+    from f1pred.lab.season import _table
+    rows = _table(["A", "B"], {"A": 10.0, "B": 0.0}, np.array([[0.0, 10.0]] * 4))
+    assert [r["name"] for r in rows][0] in ("A", "B")
+    assert abs(sum(r["p_title"] for r in rows) - 1) < 1e-9 and rows[0]["p_title"] == 0.5
+
+
+def test_simulation_accepts_a_grid_and_pace_per_simulation():
+    s = _setup(grid=np.tile(np.arange(1, 5), (30, 1)), pace=np.zeros((30, 4)))
+    assert simulate(s, n=30, seed=4).shape == (30, 4)

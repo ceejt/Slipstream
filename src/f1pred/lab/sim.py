@@ -15,8 +15,8 @@ MAX_STINTS = 4
 @dataclass
 class Setup:
     laps: int
-    grid: np.ndarray          # starting position per car, 1 = pole
-    pace: np.ndarray          # s per lap vs the field, lower is faster
+    grid: np.ndarray          # starting position per car, 1 = pole; or one row per simulation, shape (n, cars)
+    pace: np.ndarray          # s per lap vs the field, lower is faster; or one row per simulation, shape (n, cars)
     pace_sd: float            # race-to-race uncertainty of that pace
     comp_off: dict
     deg: dict
@@ -63,14 +63,14 @@ def _plan_arrays(s, n, rng, D):
 def simulate(s: Setup, n=1000, seed=0):
     """Returns finishing positions, shape (n, cars); 1 is the winner."""
     rng = np.random.default_rng(seed)
-    D = len(s.grid)
+    D = s.grid.shape[-1]
     names = ["SOFT", "MEDIUM", "HARD"]
     off = np.array([s.comp_off[k] for k in names])
     deg = np.array([s.deg[k] for k in names])
     pit_at, comp_of = _plan_arrays(s, n, rng, D)
 
-    pace = s.pace[None, :] + rng.normal(0, s.pace_sd, (n, D))
-    cum = np.tile((s.grid - 1) * s.grid_step, (n, 1)).astype(float)
+    pace = (s.pace if s.pace.ndim == 2 else s.pace[None, :]) + rng.normal(0, s.pace_sd, (n, D))
+    cum = ((s.grid - 1) * s.grid_step if s.grid.ndim == 2 else np.tile((s.grid - 1) * s.grid_step, (n, 1))).astype(float)
     stint = np.zeros((n, D), dtype=int)
     age = np.zeros((n, D))
     if s.dnf_laps is not None:

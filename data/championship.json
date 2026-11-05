@@ -1,0 +1,332 @@
+{
+  "year": 2026,
+  "after_round": 19,
+  "races_left": 4,
+  "simulations": 2000,
+  "remaining": [
+    {
+      "round": 20,
+      "event": "Brazilian Grand Prix",
+      "sprint": false
+    },
+    {
+      "round": 21,
+      "event": "Las Vegas Grand Prix",
+      "sprint": false
+    },
+    {
+      "round": 22,
+      "event": "Qatar Grand Prix",
+      "sprint": false
+    },
+    {
+      "round": 23,
+      "event": "Abu Dhabi Grand Prix",
+      "sprint": false
+    }
+  ],
+  "drivers": [
+    {
+      "name": "ANT",
+      "now": 380.0,
+      "expected": 434.369,
+      "low": 406.0,
+      "high": 466.0,
+      "p_title": 1.0,
+      "p_top3": 1.0
+    },
+    {
+      "name": "VER",
+      "now": 261.0,
+      "expected": 324.266,
+      "low": 294.0,
+      "high": 354.0,
+      "p_title": 0.0,
+      "p_top3": 0.855
+    },
+    {
+      "name": "HAM",
+      "now": 259.0,
+      "expected": 311.1275,
+      "low": 283.0,
+      "high": 342.0,
+      "p_title": 0.0,
+      "p_top3": 0.637
+    },
+    {
+      "name": "LEC",
+      "now": 245.0,
+      "expected": 295.6585,
+      "low": 268.0,
+      "high": 328.0,
+      "p_title": 0.0,
+      "p_top3": 0.302
+    },
+    {
+      "name": "RUS",
+      "now": 250.0,
+      "expected": 292.0795,
+      "low": 268.0,
+      "high": 323.0,
+      "p_title": 0.0,
+      "p_top3": 0.224
+    },
+    {
+      "name": "NOR",
+      "now": 221.0,
+      "expected": 257.332,
+      "low": 236.0,
+      "high": 285.0,
+      "p_title": 0.0,
+      "p_top3": 0.005
+    },
+    {
+      "name": "PIA",
+      "now": 144.0,
+      "expected": 175.302,
+      "low": 156.0,
+      "high": 201.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "HAD",
+      "now": 107.0,
+      "expected": 142.201,
+      "low": 121.0,
+      "high": 170.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "LAW",
+      "now": 83.0,
+      "expected": 90.0145,
+      "low": 83.0,
+      "high": 103.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "GAS",
+      "now": 42.0,
+      "expected": 51.583,
+      "low": 42.0,
+      "high": 68.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "LIN",
+      "now": 38.0,
+      "expected": 41.3085,
+      "low": 38.0,
+      "high": 50.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "COL",
+      "now": 27.0,
+      "expected": 33.721,
+      "low": 27.0,
+      "high": 47.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "BEA",
+      "now": 23.0,
+      "expected": 25.4895,
+      "low": 23.0,
+      "high": 33.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "BOR",
+      "now": 14.0,
+      "expected": 17.4845,
+      "low": 14.0,
+      "high": 27.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "HUL",
+      "now": 13.0,
+      "expected": 16.8045,
+      "low": 13.0,
+      "high": 26.049999999999955,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "SAI",
+      "now": 7.0,
+      "expected": 7.4045,
+      "low": 7.0,
+      "high": 9.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "ALO",
+      "now": 7.0,
+      "expected": 7.1845,
+      "low": 7.0,
+      "high": 8.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "ALB",
+      "now": 5.0,
+      "expected": 5.4255,
+      "low": 5.0,
+      "high": 8.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "HIR",
+      "now": 1.0,
+      "expected": 2.1705,
+      "low": 1.0,
+      "high": 7.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "STR",
+      "now": 0.0,
+      "expected": 0.0425,
+      "low": 0.0,
+      "high": 0.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "PER",
+      "now": 0.0,
+      "expected": 0.023,
+      "low": 0.0,
+      "high": 0.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "BOT",
+      "now": 0.0,
+      "expected": 0.0085,
+      "low": 0.0,
+      "high": 0.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    }
+  ],
+  "constructors": [
+    {
+      "name": "Mercedes",
+      "now": 630.0,
+      "expected": 726.4485,
+      "low": 688.0,
+      "high": 765.0,
+      "p_title": 1.0,
+      "p_top3": 1.0
+    },
+    {
+      "name": "Ferrari",
+      "now": 504.0,
+      "expected": 606.786,
+      "low": 568.0,
+      "high": 645.0,
+      "p_title": 0.0,
+      "p_top3": 1.0
+    },
+    {
+      "name": "Red Bull",
+      "now": 382.0,
+      "expected": 480.467,
+      "low": 443.0,
+      "high": 519.0,
+      "p_title": 0.0,
+      "p_top3": 0.926
+    },
+    {
+      "name": "McLaren",
+      "now": 365.0,
+      "expected": 432.634,
+      "low": 405.0,
+      "high": 464.04999999999995,
+      "p_title": 0.0,
+      "p_top3": 0.0765
+    },
+    {
+      "name": "RB F1 Team",
+      "now": 108.0,
+      "expected": 118.323,
+      "low": 109.0,
+      "high": 134.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "Alpine F1 Team",
+      "now": 69.0,
+      "expected": 85.304,
+      "low": 72.0,
+      "high": 103.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "Haas F1 Team",
+      "now": 31.0,
+      "expected": 34.66,
+      "low": 31.0,
+      "high": 44.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "Audi",
+      "now": 27.0,
+      "expected": 34.289,
+      "low": 27.0,
+      "high": 47.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "Williams",
+      "now": 12.0,
+      "expected": 12.83,
+      "low": 12.0,
+      "high": 16.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "Aston Martin",
+      "now": 7.0,
+      "expected": 7.227,
+      "low": 7.0,
+      "high": 8.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    },
+    {
+      "name": "Cadillac F1 Team",
+      "now": 0.0,
+      "expected": 0.0315,
+      "low": 0.0,
+      "high": 0.0,
+      "p_title": 0.0,
+      "p_top3": 0.0
+    }
+  ],
+  "driver_title_clinched": true,
+  "constructor_title_clinched": false,
+  "created_utc": "2026-11-05T16:27:49+00:00"
+}

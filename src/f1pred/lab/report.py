@@ -4,7 +4,10 @@ from html import escape
 
 from ..config import REPORTS
 from ..report import ANALYTICS, CREDIT, CSS, FAVICON, FONT_LINK, _top
+from .season import CHAMPIONSHIP
 from .validate import LAB_EVALUATION
+
+BACKTEST = CHAMPIONSHIP.with_name("championship_backtest.json")
 
 LAB_CSS = """
 .lab-grid{display:grid;gap:16px;margin:0 0 32px}
@@ -39,7 +42,47 @@ def _verdict(ev):
             'Negative means the simulator is better. Intervals come from resampling whole races, on the seasons it was not tuned on.</p>')
 
 
-def render(ev):
+def _chance(p):
+    return ">99.9%" if p > 0.999 else "<0.1%" if p < 0.001 else f"{p * 100:.1f}%"
+
+
+def _championship(ch, bt):
+    """The forecast tables and what the backtest says about them, or empty text if they were not made."""
+    if not ch:
+        return ""
+    def table(rows, cap, head, n):
+        body = "".join(f'<tr><td>{r["name"]}</td><td class="num">{r["now"]:.0f}</td><td class="num">{r["expected"]:.0f}</td>'
+                       f'<td class="num">{r["low"]:.0f} to {r["high"]:.0f}</td><td class="num">{_chance(r["p_title"])}</td></tr>' for r in rows[:n])
+        return _table(cap, (head, "Points now", "Expected final", "90% range", "Title chance"), body)
+    left = ch["races_left"]
+    cap = f'After round {ch["after_round"]} of {ch["year"]}, {left} races left, {ch["simulations"]:,} simulated seasons'
+    notes = []
+    if ch["driver_title_clinched"]:
+        notes.append(f'The drivers\' title is already decided: {ch["drivers"][0]["name"]} leads by more than the points still available.')
+    if ch["constructor_title_clinched"]:
+        notes.append("The constructors' title is already decided.")
+    note = f'<p>{" ".join(notes)}</p>' if notes else ""
+    check = ""
+    if bt:
+        early = [b for b in bt if b["after_round"] <= 12]
+        late = [b for b in bt if b["after_round"] > 12]
+        avg = lambda rows, k: sum(r[k] for r in rows) / len(rows)
+        check = (f'<p>Checked on {len(bt)} points in the 2023 to 2025 seasons (after rounds 8 to 20), each time using only earlier races. '
+                 f'The average chance given to the real drivers\' champion was {avg(bt, "p_driver_champion") * 100:.0f}%, and to the real constructors\' champion '
+                 f'{avg(bt, "p_constructor_champion") * 100:.0f}%. The expected final points were off by {avg(early, "driver_points_error"):.0f} points on average '
+                 f'after rounds 8 and 12, against {avg(early, "extrapolation_error"):.0f} for assuming each driver keeps scoring at the rate so far. '
+                 f'Later in the season the two are about equal ({avg(late, "driver_points_error"):.0f} against {avg(late, "extrapolation_error"):.0f}). '
+                 'That is only three seasons, so treat the title chances as rough.</p>')
+    return f"""<h3>Championship forecast</h3>
+<p>The simulator runs every remaining race of the season, thousands of times, and adds up the points. Qualifying is simulated too, from the same pace forecast. Each simulated season also gives every driver a pace shift that lasts all its races, so a quick car stays quick. Retirements and safety cars are random, from past rates. Sprint races are included.</p>
+{note}
+{table(ch["drivers"], cap, "Driver", 8)}
+{table(ch["constructors"], cap, "Team", 5)}
+{check}
+"""
+
+
+def render(ev, ch=None, bt=None):
     f = ev["fitted"]
     comp = _table("Fitted from earlier races", ("Tyre compound", "vs medium", "Wear per lap"),
                   "".join(f'<tr><td>{k.title()}</td><td class="num">{f["compound_offset_s"][k]:+.2f} s</td>'
@@ -66,7 +109,7 @@ def render(ev):
 <title>Slipstream Race lab</title>{FAVICON.replace('href="favicon', 'href="../favicon')}{FONT_LINK}{ANALYTICS}<style>{CSS}{LAB_CSS}</style></head><body><main>
 {_top(current="lab", root="../")}
 <h1>Race lab</h1>
-<p class="claim">A lap-by-lap race simulator built from public lap data. It is separate from the podium predictions: those come from a model trained on results, this one replays the race. Status: the simulator is built and tested. Strategy and championship tools are not built yet.</p>
+<p class="claim">A lap-by-lap race simulator built from public lap data. It is separate from the podium predictions: those come from a model trained on results, this one replays the race. Status: the simulator is built and tested. The championship forecast is built. The strategy tools are not built yet.</p>
 <div class="method">
 <h3>What it learned from {ev["races_fitted"]} races</h3>
 <p>Lap times, tyre stints and pit stops for every race since 2023 come from OpenF1. For each race the lab fits the pace of every driver, how much slower or faster each tyre is, how fast it wears, and how much time a pit stop costs. Wet races ({ev["wet_races_skipped"]}) are left out, because the tyre model is for dry running. For each target race only earlier races are used.</p>
@@ -87,9 +130,8 @@ def render(ev):
 <li>The whole field follows one typical strategy per simulated race, taken from earlier races at that circuit, with small differences in stop laps.</li>
 <li>Not modelled: rain, tyre warm-up, damage, penalties during the race, team orders and the effect of fuel on tyre wear.</li>
 </ul>
-<h3>Next</h3>
+{_championship(ch, bt)}<h3>Next</h3>
 <ul class="soon-list">
-<li><b>Championship forecast.</b> Run the simulator for each remaining race of the season, thousands of times, and count points.</li>
 <li><b>Pit strategy optimiser.</b> Search stop counts, tyre choices and stop laps, and compare undercut and overcut.</li>
 <li><b>Later.</b> Live track map from OpenF1 positions, a fantasy score for the podium model, and a race engineer game.</li>
 </ul>
@@ -102,7 +144,8 @@ def write():
     ev = json.loads(LAB_EVALUATION.read_text())
     path = REPORTS / "lab" / "index.html"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render(ev))
+    load = lambda f: json.loads(f.read_text()) if f.exists() else None
+    path.write_text(render(ev, load(CHAMPIONSHIP), load(BACKTEST)))
     return path
 
 
