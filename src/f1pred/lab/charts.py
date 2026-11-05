@@ -66,6 +66,7 @@ CSS = """
 .tile{background:var(--surface);border:1px solid var(--rule);padding:16px}
 .tile .k{font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 8px}
 .tile .v{font:900 32px/36px var(--display);margin:0 0 8px}
+.tile .v .tc{color:var(--c)}
 .tile .c{font:400 14px/20px var(--body);color:var(--muted);margin:0}
 .panel-lab{background:var(--surface);border:1px solid var(--rule);padding:16px;margin:0 0 16px}
 .seg{display:inline-flex;border:1px solid var(--rule);margin:0 8px 16px 0}

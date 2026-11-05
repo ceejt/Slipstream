@@ -117,7 +117,8 @@ def _tiles(ev, ch, st):
     tiles = []
     if ch:
         lead = ch["drivers"][0]
-        v = f'{lead["name"]}, decided' if ch["driver_title_clinched"] else f'{lead["name"]} {_chance(lead["p_title"])}'
+        who = f'<span class="tc c-{charts._key(lead["name"])}">{escape(lead["name"])}</span>'  # in the team's colour
+        v = f'{who}, decided' if ch["driver_title_clinched"] else f'{who} {_chance(lead["p_title"])}'
         tiles.append(("Drivers' title", v, f'After round {ch["after_round"]} of {ch["year"]}, {ch["races_left"]} races left.'))
     if st:
         firsts = {(tuple(d["best"][0]["tyres"]), d["best"][0]["stops"]) for d in st["drivers"]}
