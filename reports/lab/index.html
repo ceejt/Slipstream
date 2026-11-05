@@ -16,18 +16,21 @@ main{max-width:973px;margin:0 auto;padding:24px 16px 48px}
 @media(min-width:1069px){main{padding:32px 32px 64px}}
 .top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 32px;
 padding-bottom:12px;border-bottom:1px solid var(--rule)}
-.brand{font:900 16px/22px var(--display);text-transform:uppercase;letter-spacing:.5px;margin:0}
+.brand{font:900 24px/28px var(--display);text-transform:uppercase;letter-spacing:.5px;margin:0}
+@media(max-width:480px){.brand{font-size:20px;line-height:24px}}
 .top{flex-wrap:wrap}
-.nav{display:flex;gap:4px;margin-right:auto}
+.topr{display:flex;align-items:center;gap:16px;margin-left:auto}
+.nav{display:flex;gap:4px}
 .nav a{color:var(--muted);text-decoration:none;font:600 14px/20px var(--body);padding:12px;min-height:44px;box-sizing:border-box;
 border-bottom:2px solid transparent;margin-bottom:-14px}
 .nav a:hover{color:var(--text)}
+@media(max-width:480px){.nav a{padding:12px 8px}.topr{gap:8px}}
 .nav a[aria-current=page]{color:var(--text);border-bottom-color:#E10600}
 .back{color:var(--text);text-decoration:none;border:1px solid var(--rule);border-radius:4px;padding:4px 12px;
 font:600 14px/20px var(--body);transition:background-color .15s cubic-bezier(.4,0,.2,1)}
 .back:hover{background:var(--surface-2)}
-.brand a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
-.brand .logo{flex:none;width:.8em;height:.8em}
+.brand a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:10px}
+.brand .logo{flex:none;width:1em;height:1em}
 .brand .hl{stroke:var(--text)}
 .brand a:hover{text-decoration:underline;text-underline-offset:4px}
 h1{font:900 32px/38px var(--display);text-transform:uppercase;text-wrap:balance;margin:0 0 12px}
@@ -249,7 +252,7 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .sec b,.tile b{font-weight:700}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .c-ANT{--c:#27F4D2}.c-VER{--c:#3671C6}.c-HAM{--c:#E8002D}.c-LEC{--c:#E8002D}.c-RUS{--c:#27F4D2}.c-NOR{--c:#FF8000}.c-PIA{--c:#FF8000}.c-HAD{--c:#3671C6}.c-LAW{--c:#6692FF}.c-GAS{--c:#00A1E8}.c-Mercedes{--c:#27F4D2}.c-Ferrari{--c:#E8002D}.c-RedBull{--c:#3671C6}.c-McLaren{--c:#FF8000}.c-RBF1Team{--c:#6692FF}.c-AlpineF1Team{--c:#00A1E8}.c-VER{--c:#3671C6}.c-ANT{--c:#27F4D2}.c-HAM{--c:#E8002D}@media(prefers-color-scheme:light){.c-ANT{--c:#067E6A}.c-VER{--c:#142948}.c-HAM{--c:#5C0012}.c-LEC{--c:#5C0012}.c-RUS{--c:#067E6A}.c-NOR{--c:#804000}.c-PIA{--c:#804000}.c-HAD{--c:#142948}.c-LAW{--c:#0038C2}.c-GAS{--c:#004E70}.c-Mercedes{--c:#067E6A}.c-Ferrari{--c:#5C0012}.c-RedBull{--c:#142948}.c-McLaren{--c:#804000}.c-RBF1Team{--c:#0038C2}.c-AlpineF1Team{--c:#004E70}.c-VER{--c:#142948}.c-ANT{--c:#067E6A}.c-HAM{--c:#5C0012}}</style></head><body><main>
-<header class="top"><p class="brand"><a href="https://github.com/ceejt/Slipstream" target="_blank" rel="noopener noreferrer" aria-label="Slipstream, source code on GitHub (opens in a new tab)"><svg class="logo" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M30 16C30 19.713 28.525 23.274 25.8995 25.8995C23.274 28.525 19.713 30 16 30C12.287 30 8.72601 28.525 6.1005 25.8995C3.475 23.274 2 19.713 2 16C2 12.287 3.475 8.72601 6.1005 6.1005C8.72601 3.475 12.287 2 16 2C19.713 2 23.274 3.475 25.8995 6.1005C28.525 8.72601 30 12.287 30 16Z" stroke-width="2.5" stroke="#E10600"/><path class="hl" d="M30 16C30 19.713 28.525 23.274 25.8995 25.8995C23.274 28.525 19.713 30 16 30C12.287 30 8.72601 28.525 6.1005 25.8995C3.475 23.274 2 19.713 2 16C2 12.287 3.475 8.72601 6.1005 6.1005C8.72601 3.475 12.287 2 16 2C19.713 2 23.274 3.475 25.8995 6.1005C28.525 8.72601 30 12.287 30 16Z" stroke-width="0.5"/><path d="M26 6L21 10H13C11.5 10 10.5 10.5 9.5 11.5L8.5 12.5C7 14 8 16 10 16H22C24 16 25 18 23.5 19.5L22.5 20.5C21.5 21.5 20.5 22 19 22H11L6 26" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke="#E10600"/><path class="hl" d="M26 6L21 10H13C11.5 10 10.5 10.5 9.5 11.5L8.5 12.5C7 14 8 16 10 16H22C24 16 25 18 23.5 19.5L22.5 20.5C21.5 21.5 20.5 22 19 22H11L6 26" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Slipstream</a></p><nav class="nav" aria-label="Sections"><a href="../index.html">Podium predictor</a><a href="../lab/index.html" aria-current=page>Race lab</a></nav></header>
+<header class="top"><p class="brand"><a href="https://github.com/ceejt/Slipstream" target="_blank" rel="noopener noreferrer" aria-label="Slipstream, source code on GitHub (opens in a new tab)"><svg class="logo" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M30 16C30 19.713 28.525 23.274 25.8995 25.8995C23.274 28.525 19.713 30 16 30C12.287 30 8.72601 28.525 6.1005 25.8995C3.475 23.274 2 19.713 2 16C2 12.287 3.475 8.72601 6.1005 6.1005C8.72601 3.475 12.287 2 16 2C19.713 2 23.274 3.475 25.8995 6.1005C28.525 8.72601 30 12.287 30 16Z" stroke-width="2.5" stroke="#E10600"/><path class="hl" d="M30 16C30 19.713 28.525 23.274 25.8995 25.8995C23.274 28.525 19.713 30 16 30C12.287 30 8.72601 28.525 6.1005 25.8995C3.475 23.274 2 19.713 2 16C2 12.287 3.475 8.72601 6.1005 6.1005C8.72601 3.475 12.287 2 16 2C19.713 2 23.274 3.475 25.8995 6.1005C28.525 8.72601 30 12.287 30 16Z" stroke-width="0.5"/><path d="M26 6L21 10H13C11.5 10 10.5 10.5 9.5 11.5L8.5 12.5C7 14 8 16 10 16H22C24 16 25 18 23.5 19.5L22.5 20.5C21.5 21.5 20.5 22 19 22H11L6 26" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke="#E10600"/><path class="hl" d="M26 6L21 10H13C11.5 10 10.5 10.5 9.5 11.5L8.5 12.5C7 14 8 16 10 16H22C24 16 25 18 23.5 19.5L22.5 20.5C21.5 21.5 20.5 22 19 22H11L6 26" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Slipstream</a></p><div class="topr"><nav class="nav" aria-label="Sections"><a href="../index.html">Podium predictor</a><a href="../lab/index.html" aria-current=page>Race lab</a></nav></div></header>
 <h1>Race lab</h1>
 <p class="claim">A lap-by-lap race simulator built from public lap data. It is separate from the podium predictions: those come from a model trained on results, this one replays the race.</p>
 <div class="tiles"><div class="tile"><p class="k">Drivers' title</p><p class="v">ANT, decided</p><p class="c">After round 19 of 2026, 4 races left.</p></div><div class="tile"><p class="k">Best plan, Brazilian Grand Prix</p><p class="v">1 stop</p><p class="c">Soft then Hard, for the three fastest cars.</p></div><div class="tile"><p class="k">As a podium forecaster</p><p class="v">0.067 vs 0.061</p><p class="c">Brier score of the simulator against the podium model over 60 races. Lower is better.</p></div></div>

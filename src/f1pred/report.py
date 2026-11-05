@@ -49,18 +49,21 @@ main{max-width:973px;margin:0 auto;padding:24px 16px 48px}
 @media(min-width:1069px){main{padding:32px 32px 64px}}
 .top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 32px;
 padding-bottom:12px;border-bottom:1px solid var(--rule)}
-.brand{font:900 16px/22px var(--display);text-transform:uppercase;letter-spacing:.5px;margin:0}
+.brand{font:900 24px/28px var(--display);text-transform:uppercase;letter-spacing:.5px;margin:0}
+@media(max-width:480px){.brand{font-size:20px;line-height:24px}}
 .top{flex-wrap:wrap}
-.nav{display:flex;gap:4px;margin-right:auto}
+.topr{display:flex;align-items:center;gap:16px;margin-left:auto}
+.nav{display:flex;gap:4px}
 .nav a{color:var(--muted);text-decoration:none;font:600 14px/20px var(--body);padding:12px;min-height:44px;box-sizing:border-box;
 border-bottom:2px solid transparent;margin-bottom:-14px}
 .nav a:hover{color:var(--text)}
+@media(max-width:480px){.nav a{padding:12px 8px}.topr{gap:8px}}
 .nav a[aria-current=page]{color:var(--text);border-bottom-color:#E10600}
 .back{color:var(--text);text-decoration:none;border:1px solid var(--rule);border-radius:4px;padding:4px 12px;
 font:600 14px/20px var(--body);transition:background-color .15s cubic-bezier(.4,0,.2,1)}
 .back:hover{background:var(--surface-2)}
-.brand a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
-.brand .logo{flex:none;width:.8em;height:.8em}
+.brand a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:10px}
+.brand .logo{flex:none;width:1em;height:1em}
 .brand .hl{stroke:var(--text)}
 .brand a:hover{text-decoration:underline;text-underline-offset:4px}
 h1{font:900 32px/38px var(--display);text-transform:uppercase;text-wrap:balance;margin:0 0 12px}
@@ -283,7 +286,7 @@ def _top(back=False, current="predictor", root=""):
     links = "".join(f'<a href="{root}{href}"{" aria-current=page" if key == current else ""}>{label}</a>'
                     for key, label, href in NAV)
     link = f'<a class="back" href="{root}index.html">Back to all races</a>' if back else ""
-    return f'<header class="top">{BRAND}<nav class="nav" aria-label="Sections">{links}</nav>{link}</header>'
+    return f'<header class="top">{BRAND}<div class="topr">{link}<nav class="nav" aria-label="Sections">{links}</nav></div></header>'
 
 
 GITHUB_ICON = ('<svg viewBox="0 0 16 16" width="24" height="24" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>')
