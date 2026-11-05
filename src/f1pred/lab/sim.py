@@ -28,6 +28,7 @@ class Setup:
     p_sc: float = 0.0         # chance of a safety car
     plans: list = field(default_factory=list)  # [(pit_laps, compounds)] to sample from, or one per car in `fixed`
     fixed: list = None        # one (pit_laps, compounds) per car, overrides plans
+    forced: dict = None       # {car index: (pit_laps, compounds)}: these cars follow this plan in every simulation
     dnf_laps: np.ndarray = None   # known retirement lap per car (np.inf if none), used when replaying a race
     margin: float = 0.8       # pace advantage needed to pass, seconds per lap
     gap: float = 0.3          # closest a following car gets, seconds
@@ -57,7 +58,12 @@ def _plan_arrays(s, n, rng, D):
     pit = pa[pick]
     if s.fixed is None:
         pit = np.where(pit < 10 ** 5, pit + np.rint(rng.normal(0, s.pit_jitter, pit.shape)).astype(int), pit)
-    return pit, ca[pick]
+    ca = ca[pick]
+    for d, (laps, comps) in (s.forced or {}).items():
+        pit[:, d, :] = 10 ** 6
+        pit[:, d, :len(laps[:MAX_STINTS - 1])] = laps[:MAX_STINTS - 1]
+        ca[:, d, :] = [names.index(comps[min(j, len(comps) - 1)]) for j in range(MAX_STINTS)]
+    return pit, ca
 
 
 def simulate(s: Setup, n=1000, seed=0):
@@ -69,8 +75,8 @@ def simulate(s: Setup, n=1000, seed=0):
     deg = np.array([s.deg[k] for k in names])
     pit_at, comp_of = _plan_arrays(s, n, rng, D)
 
-    pace = (s.pace if s.pace.ndim == 2 else s.pace[None, :]) + rng.normal(0, s.pace_sd, (n, D))
-    cum = ((s.grid - 1) * s.grid_step if s.grid.ndim == 2 else np.tile((s.grid - 1) * s.grid_step, (n, 1))).astype(float)
+    pace = (s.pace[:n] if s.pace.ndim == 2 else s.pace[None, :]) + rng.normal(0, s.pace_sd, (n, D))
+    cum = ((s.grid[:n] - 1) * s.grid_step if s.grid.ndim == 2 else np.tile((s.grid - 1) * s.grid_step, (n, 1))).astype(float)
     stint = np.zeros((n, D), dtype=int)
     age = np.zeros((n, D))
     if s.dnf_laps is not None:
@@ -102,7 +108,10 @@ def simulate(s: Setup, n=1000, seed=0):
             cap = new[np.arange(n), ahead] + s.gap
             f = free[np.arange(n), me]
             need = s.margin * np.exp(rng.normal(0, 0.4, n))  # how much faster than the car ahead it must be to get by
-            blocked = (f < cap) & (cap - f < need) & alive[np.arange(n), me] & alive[np.arange(n), ahead]
+            rows_ = np.arange(n)
+            # a car in the pit lane neither holds up nor is held up: the order after its stop is just the times
+            blocked = ((f < cap) & (cap - f < need) & alive[rows_, me] & alive[rows_, ahead]
+                       & ~pitting[rows_, me] & ~pitting[rows_, ahead])
             new[np.arange(n), me] = np.where(blocked, cap, f)
         # a safety car closes the gaps
         if sc.any():

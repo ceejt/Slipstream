@@ -1,5 +1,5 @@
 {
-  "created_utc": "2026-11-05T16:27:11+00:00",
+  "created_utc": "2026-11-05T16:52:08+00:00",
   "races": 75,
   "races_fitted": 80,
   "wet_races_skipped": 7,
@@ -9,9 +9,9 @@
     "simulator": {
       "races": 75,
       "top3_overlap": 0.6533333333333333,
-      "exact_podium": 0.18666666666666668,
-      "brier": 0.06877290625,
-      "logloss": 0.2127317694046337
+      "exact_podium": 0.21333333333333335,
+      "brier": 0.06901355208333333,
+      "logloss": 0.21338848743297803
     },
     "blend": {
       "races": 75,
@@ -31,8 +31,8 @@
       "races": 75,
       "top3_overlap": 0.6844444444444444,
       "exact_podium": 0.24,
-      "brier": 0.06467532632026439,
-      "logloss": 0.20439586998001577
+      "brier": 0.06478727308466424,
+      "logloss": 0.20474459636487907
     },
     "grid order": {
       "races": 75,
@@ -42,17 +42,17 @@
       "logloss": null
     },
     "place_error": {
-      "simulator": 3.2311770833333333,
+      "simulator": 3.2325546875,
       "grid": 3.2825520833333335
     }
   },
   "holdout": {
     "simulator": {
       "races": 60,
-      "top3_overlap": 0.6666666666666666,
-      "exact_podium": 0.2,
-      "brier": 0.06701003883495146,
-      "logloss": 0.20573277938420315
+      "top3_overlap": 0.6722222222222222,
+      "exact_podium": 0.23333333333333334,
+      "brier": 0.06727285436893204,
+      "logloss": 0.20651862662611598
     },
     "blend": {
       "races": 60,
@@ -72,8 +72,8 @@
       "races": 60,
       "top3_overlap": 0.688888888888889,
       "exact_podium": 0.25,
-      "brier": 0.06254862965394348,
-      "logloss": 0.1955142848130333
+      "brier": 0.0626689124777992,
+      "logloss": 0.1958881264432644
     },
     "grid order": {
       "races": 60,
@@ -83,33 +83,33 @@
       "logloss": null
     },
     "place_error": {
-      "simulator": 3.189349514563107,
+      "simulator": 3.1910097087378637,
       "grid": 3.156957928802589
     }
   },
   "brier_difference": {
     "simulator minus blend": {
-      "diff": 0.0059149738110709105,
-      "low": 0.0017929038081289392,
-      "high": 0.010117527582317995
+      "diff": 0.006175157192251137,
+      "low": 0.0020134096588988316,
+      "high": 0.010284750018309714
     },
     "simulator minus grid logistic": {
-      "diff": 0.004268250524460942,
-      "low": -0.0021732083656286504,
-      "high": 0.010717264899411657
+      "diff": 0.004528433905641163,
+      "low": -0.0019486438309177124,
+      "high": 0.010986507210372516
     }
   },
   "replay": {
     "races": 75,
-    "spearman": 0.8166765027198464,
-    "mean_place_error": 2.1259598178452666,
-    "winner_right": 0.5866666666666667,
-    "top3_overlap": 0.6399999999999999
+    "spearman": 0.8162812512055997,
+    "mean_place_error": 2.141740519599653,
+    "winner_right": 0.5466666666666666,
+    "top3_overlap": 0.6266666666666667
   },
   "replay_true_pace": {
     "races": 75,
-    "spearman": 0.8908954259916884,
-    "mean_place_error": 1.4757113044048027,
+    "spearman": 0.8913337440393522,
+    "mean_place_error": 1.4712799318557832,
     "winner_right": 0.6533333333333333,
     "top3_overlap": 0.8177777777777777
   },

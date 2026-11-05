@@ -74,3 +74,32 @@ def test_table_splits_a_tied_title_and_orders_by_expected_points():
 def test_simulation_accepts_a_grid_and_pace_per_simulation():
     s = _setup(grid=np.tile(np.arange(1, 5), (30, 1)), pace=np.zeros((30, 4)))
     assert simulate(s, n=30, seed=4).shape == (30, 4)
+
+
+def test_candidate_plans_use_two_tyres_and_respect_the_minimum_stint():
+    from f1pred.lab.strategy import MIN_STINT, candidates
+    plans = candidates(60, 5)
+    assert plans and all(len(set(c)) > 1 for _, c in plans)
+    assert all(b - a >= MIN_STINT for laps, _ in plans for a, b in zip(laps, laps[1:]))
+
+
+def test_forced_plan_is_followed_by_that_car_only():
+    from f1pred.lab.strategy import evaluate
+    s = _setup(plans=[([20], ["MEDIUM", "HARD"])])
+    long_soft = evaluate(s, 0, ([38], ["SOFT", "HARD"]), 100, 1)
+    assert 1 <= long_soft["position"] <= 4 and s.forced == {0: ([38], ["SOFT", "HARD"])}
+
+
+def test_undercut_helps_and_overcut_does_not():
+    from f1pred.lab.strategy import undercut_curve
+    c = undercut_curve(_setup(laps=60), gap=1.0, shifts=(-3, 0, 3), n=300)
+    assert c[-3] > 0.5 > c[3] and c[-3] > c[0]
+
+
+def test_a_pitting_car_is_not_held_up_by_the_car_it_is_behind():
+    # B is 1 s ahead and stops a lap before A; A stays out and should come out ahead of B, not stuck behind
+    s = _setup(grid=np.array([1, 2]), pace=np.zeros(2), p_dnf=np.zeros(2), lap_sd=0.0, grid_step=1.0, laps=40,
+               fixed=[([20], ["MEDIUM", "HARD"]), ([21], ["MEDIUM", "HARD"])])
+    s.pit_loss = 22.0
+    rank = simulate(s, n=20, seed=1)
+    assert (rank[:, 1] != rank[:, 0]).all()
