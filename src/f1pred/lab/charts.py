@@ -101,12 +101,16 @@ CSS = """
 .subnav a[aria-current=true]{color:var(--text);border-bottom-color:#E10600}
 .sec{scroll-margin-top:64px;margin:0 0 64px}
 .sec>h2{font:900 24px/28px var(--display);text-transform:uppercase;margin:0 0 8px}
-.sec>.lead{font:400 16px/24px var(--body);color:var(--muted);margin:0 0 24px;max-width:54ch;text-wrap:pretty}
+.sec>.lead,.cols>.lead{font:400 16px/24px var(--body);color:var(--muted);margin:0 0 24px;max-width:54ch;text-wrap:pretty}
 .sec p,.sec li,.tile .c{text-wrap:pretty}
 .status,.answer{font:400 20px/28px var(--body);margin:0 0 16px;max-width:36em;text-wrap:balance}
 .status b,.answer b{font-weight:700}
 .status .tc{color:var(--t)}
 .caveat{font:400 14px/20px var(--body);color:var(--muted);margin:0 0 16px;max-width:54ch;border-top:1px solid var(--rule);padding-top:12px}
+.cols{display:grid;gap:0 48px;margin:0 0 24px}
+.cols>.lead{margin:0 0 16px}
+.cols>.caveat{margin:0}
+@media(min-width:735px){.cols{grid-template-columns:1fr 1fr;align-items:start}.cols>.lead{margin:0;max-width:none}.cols>.caveat{max-width:none;border-top:0;padding:0 0 0 24px;border-left:1px solid var(--rule)}}
 .caveat b{color:var(--text)}
 .notes{list-style:none;margin:24px 0 0;padding:0;max-width:54ch}
 .notes li{font:400 14px/20px var(--body);color:var(--muted);padding:12px 0;border-top:1px solid var(--rule)}
@@ -163,7 +167,11 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .side .sw.dash{border-top-style:dashed}
 .side .p{font-variant-numeric:tabular-nums;font-weight:700}
 .side small{display:block;color:var(--muted);font-weight:400;font-size:12px}
-.readout{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 16px;margin:16px 0 0;font:600 14px/20px var(--body)}
+.readout{display:grid;grid-template-columns:repeat(2,1fr);gap:0 32px;margin:16px 0 0;font:600 14px/20px var(--body)}
+@media(min-width:735px){.readout{grid-template-columns:repeat(3,1fr)}}
+.readout>div:not(.t){display:grid;grid-template-columns:3.2em 3em 1fr;gap:8px;align-items:baseline;border-top:1px solid var(--rule);padding:6px 0}
+.readout>div:not(.t)>b,.readout>div:not(.t)>span:last-child{text-align:right}
+.readout .nm{color:var(--t);font-weight:700}
 .readout span{color:var(--muted);font-weight:400}
 .readout b{font-variant-numeric:tabular-nums}
 .readout .t{grid-column:1/-1;color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px}
@@ -288,7 +296,7 @@ function fan(root){
   }
   function read(){
     var S=shown(),i=st.idx,a='<div class="t">Points after '+(i?C.labels[i]:'round '+C.after)+(i?'':' (now)')+', average and 90% range</div>';
-    S.forEach(function(r){var p=r.path;a+='<div class="c-'+r.key+'"><span>'+r.name+'</span> <b>'+Math.round(p.mean[i])+'</b> <span>'+Math.round(p.low[i])+' to '+Math.round(p.high[i])+'</span></div>'});
+    S.forEach(function(r){var p=r.path;a+='<div class="c-'+r.key+'"><span class="nm">'+r.name+'</span><b>'+Math.round(p.mean[i])+'</b><span>'+Math.round(p.low[i])+' to '+Math.round(p.high[i])+'</span></div>'});
     out.innerHTML=a;
   }
   function play(){

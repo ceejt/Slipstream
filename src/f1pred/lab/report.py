@@ -183,14 +183,15 @@ def render(ev, ch=None, bt=None, st=None, chk=None):
         if done:
             status = f'<p class="status"><b>{" and ".join(done)}.</b> The points left are not enough for anyone else to catch up.</p>'
     champ = f"""<section class="sec" id="championship"><h2>Championship</h2>
-{status}<p class="lead">Every remaining race is simulated thousands of times and the points are added up. Lines are the average; shaded bands cover 90% of simulated seasons.</p>
+{status}<div class="cols"><p class="lead">Every remaining race is simulated thousands of times and the points are added up. Lines are the average; shaded bands cover 90% of simulated seasons.</p>
+{f'<p class="caveat">{_champ_check(bt)}</p>' if bt else ""}</div>
 <div id="fan-root"></div>
-<p class="note">{_champ_check(bt)}</p>
 <details class="tables"><summary>Show as tables</summary>{_champ_tables(ch)}</details></section>""" if ch else ""
     when = "Qualifying has not been run, so each simulated race draws its own grid from the pace forecast. " if st and not st["grid_known"] else "The grid is the real qualifying order. "
     strat = f"""<section class="sec" id="strategy"><h2>Pit strategy</h2>
-{_strategy_answer(st)}{_strategy_caveat(chk)}
-<p class="lead">{escape(st["event"])}, {st["laps"]} laps, a pit stop costs {st["pit_loss_s"]} s. {when}Each square is a one-stop plan, played {st["simulations"]:,} times for the chosen driver while the rest of the field follows typical strategies. A stronger colour means more expected points.</p>
+{_strategy_answer(st)}
+<div class="cols"><p class="lead">{escape(st["event"])}, {st["laps"]} laps, a pit stop costs {st["pit_loss_s"]} s. {when}Each square is a one-stop plan, played {st["simulations"]:,} times for the chosen driver while the rest of the field follows typical strategies. A stronger colour means more expected points.</p>
+{_strategy_caveat(chk)}</div>
 <div id="heat-root"></div>
 {_strategy_notes(st)}
 <details class="tables"><summary>Show as tables</summary>{_strategy_tables(st)}</details></section>""" if st else ""
