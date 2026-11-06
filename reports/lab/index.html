@@ -195,7 +195,7 @@ font:600 14px/24px var(--body);transition:background-color .15s cubic-bezier(.4,
 .sec p,.sec li,.tile .c{text-wrap:pretty}
 .status,.answer{font:400 20px/28px var(--body);margin:0 0 16px;max-width:36em;text-wrap:balance}
 .status b,.answer b{font-weight:700}
-.status .tc{color:var(--c)}
+.status .tc{color:var(--t)}
 .caveat{font:400 14px/20px var(--body);color:var(--muted);margin:0 0 16px;max-width:54ch;border-top:1px solid var(--rule);padding-top:12px}
 .caveat b{color:var(--text)}
 .notes{list-style:none;margin:24px 0 0;padding:0;max-width:54ch}
@@ -206,7 +206,7 @@ font:600 14px/24px var(--body);transition:background-color .15s cubic-bezier(.4,
 .tile{background:var(--surface);border:1px solid var(--rule);padding:16px}
 .tile .k{font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 8px}
 .tile .v{font:900 32px/36px var(--display);margin:0 0 8px}
-.tile .v .tc{color:var(--c)}
+.tile .v .tc{color:var(--t)}
 .tile .c{font:400 14px/20px var(--body);color:var(--muted);margin:0}
 .tile .c a{color:var(--text);text-underline-offset:3px}
 .panel-lab{background:var(--surface);border:1px solid var(--rule);padding:16px;margin:0 0 16px}
@@ -223,20 +223,21 @@ font:600 14px/24px var(--body);transition:background-color .15s cubic-bezier(.4,
 .lab svg text{font:600 12px var(--body);fill:var(--muted)}
 .lab svg .grid{stroke:var(--rule);stroke-width:1}
 .lab svg .axis{fill:var(--muted)}
-.lab svg .band{fill:var(--c);opacity:.16}
-.lab svg .line{fill:none;stroke:var(--c);stroke-width:2.5;stroke-linejoin:round}
-.lab svg .dot{fill:var(--c)}
+.lab .alt{--l:var(--l2)}
+.lab svg .band{fill:var(--l);opacity:.16}
+.lab svg .line{fill:none;stroke:var(--l);stroke-width:2.5;stroke-linejoin:round}
+.lab svg .dot{fill:var(--l)}
 .lab svg .minor .line{stroke-width:1.5;opacity:.75}
 .lab svg .minor .band{opacity:.07}
 .lab svg .minor .dot{opacity:.75}
-.lab svg .endlab{fill:var(--c);font-weight:700}
+.lab svg .endlab{fill:var(--t);font-weight:700}
 .lab svg .cross{stroke:var(--text);stroke-width:1;opacity:.5}
 .lab svg .hit{fill:transparent;cursor:crosshair}
 .fan-svg:focus-visible,.heat-svg:focus-visible{outline:2px solid var(--text);outline-offset:4px}
 .rel{position:relative}
 .tip{position:absolute;z-index:3;pointer-events:none;background:var(--surface-2);border:1px solid var(--rule);padding:8px 12px;font:600 14px/20px var(--body);color:var(--text);white-space:nowrap;display:none}
 .tip .t{display:block;color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px}
-.tip .r{display:flex;justify-content:space-between;gap:16px;color:var(--c)}
+.tip .r{display:flex;justify-content:space-between;gap:16px;color:var(--t)}
 .tip .r b{color:var(--text);font-variant-numeric:tabular-nums}
 .tip .u{display:block;color:var(--muted);font-weight:400}
 .side{list-style:none;margin:0;padding:0}
@@ -248,7 +249,7 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .side .more{display:block;grid-template-columns:none}
 .more{background:none;border:0;border-top:1px solid var(--rule);color:var(--muted);font:600 14px/20px var(--body);width:100%;text-align:left;padding:12px 0;min-height:44px;cursor:pointer}
 .more:hover{color:var(--text)}
-.side .sw{width:28px;height:0;border-top:3px solid var(--c)}
+.side .sw{width:28px;height:0;border-top:3px solid var(--l)}
 .side .sw.dash{border-top-style:dashed}
 .side .p{font-variant-numeric:tabular-nums;font-weight:700}
 .side small{display:block;color:var(--muted);font-weight:400;font-size:12px}
@@ -274,7 +275,7 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .tyre{stroke:var(--rule);stroke-width:1}
 .lab svg .tyretxt{fill:#15151E;font-weight:700;text-anchor:middle}
 .lab svg .pitlab{font-size:13px;text-anchor:middle}
-.lab svg .lead-line{stroke:var(--c);stroke-width:1;opacity:.6}
+.lab svg .lead-line{stroke:var(--l);stroke-width:1;opacity:.6}
 .tables{margin:16px 0 0}
 .tables summary{cursor:pointer;color:var(--muted);font:600 14px/20px var(--body);padding:12px 0;min-height:44px}
 .tables summary:hover{color:var(--text)}
@@ -283,7 +284,7 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .note b{color:var(--text)}
 .sec b,.tile b{font-weight:700}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-.c-ANT{--c:#27F4D2}.c-VER{--c:#3671C6}.c-HAM{--c:#E8002D}.c-LEC{--c:#E8002D}.c-RUS{--c:#27F4D2}.c-NOR{--c:#FF8000}.c-PIA{--c:#FF8000}.c-HAD{--c:#3671C6}.c-LAW{--c:#6692FF}.c-GAS{--c:#00A1E8}.c-Mercedes{--c:#27F4D2}.c-Ferrari{--c:#E8002D}.c-RedBull{--c:#3671C6}.c-McLaren{--c:#FF8000}.c-RBF1Team{--c:#6692FF}.c-AlpineF1Team{--c:#00A1E8}.c-VER{--c:#3671C6}.c-ANT{--c:#27F4D2}.c-HAM{--c:#E8002D}@media(prefers-color-scheme:light){.c-ANT{--c:#067E6A}.c-VER{--c:#142948}.c-HAM{--c:#5C0012}.c-LEC{--c:#5C0012}.c-RUS{--c:#067E6A}.c-NOR{--c:#804000}.c-PIA{--c:#804000}.c-HAD{--c:#142948}.c-LAW{--c:#0038C2}.c-GAS{--c:#004E70}.c-Mercedes{--c:#067E6A}.c-Ferrari{--c:#5C0012}.c-RedBull{--c:#142948}.c-McLaren{--c:#804000}.c-RBF1Team{--c:#0038C2}.c-AlpineF1Team{--c:#004E70}.c-VER{--c:#142948}.c-ANT{--c:#067E6A}.c-HAM{--c:#5C0012}}</style></head><body><main>
+.c-ANT{--c:#27F4D2;--l:#27F4D2;--l2:#88F9E6;--t:#27F4D2}.c-VER{--c:#3671C6;--l:#3671C6;--l2:#90B1E0;--t:#5486CF}.c-HAM{--c:#E8002D;--l:#E8002D;--l2:#F2738C;--t:#ED3357}.c-LEC{--c:#E8002D;--l:#E8002D;--l2:#F2738C;--t:#ED3357}.c-RUS{--c:#27F4D2;--l:#27F4D2;--l2:#88F9E6;--t:#27F4D2}.c-NOR{--c:#FF8000;--l:#FF8000;--l2:#FFB973;--t:#FF8000}.c-PIA{--c:#FF8000;--l:#FF8000;--l2:#FFB973;--t:#FF8000}.c-HAD{--c:#3671C6;--l:#3671C6;--l2:#90B1E0;--t:#5486CF}.c-LAW{--c:#6692FF;--l:#6692FF;--l2:#ABC3FF;--t:#6692FF}.c-GAS{--c:#00A1E8;--l:#00A1E8;--l2:#73CBF2;--t:#00A1E8}.c-Mercedes{--c:#27F4D2;--l:#27F4D2;--l2:#88F9E6;--t:#27F4D2}.c-Ferrari{--c:#E8002D;--l:#E8002D;--l2:#F2738C;--t:#ED3357}.c-RedBull{--c:#3671C6;--l:#3671C6;--l2:#90B1E0;--t:#5486CF}.c-McLaren{--c:#FF8000;--l:#FF8000;--l2:#FFB973;--t:#FF8000}.c-RBF1Team{--c:#6692FF;--l:#6692FF;--l2:#ABC3FF;--t:#6692FF}.c-AlpineF1Team{--c:#00A1E8;--l:#00A1E8;--l2:#73CBF2;--t:#00A1E8}.c-VER{--c:#3671C6;--l:#3671C6;--l2:#90B1E0;--t:#5486CF}.c-ANT{--c:#27F4D2;--l:#27F4D2;--l2:#88F9E6;--t:#27F4D2}.c-HAM{--c:#E8002D;--l:#E8002D;--l2:#F2738C;--t:#ED3357}@media(prefers-color-scheme:light){.c-ANT{--c:#067E6A;--l:#16B99E;--l2:#73D5C5;--t:#067E6A}.c-VER{--c:#142948;--l:#254D87;--l2:#7C94B7;--t:#142948}.c-HAM{--c:#5C0012;--l:#A20020;--l2:#C76679;--t:#5C0012}.c-LEC{--c:#5C0012;--l:#A20020;--l2:#C76679;--t:#5C0012}.c-RUS{--c:#067E6A;--l:#16B99E;--l2:#73D5C5;--t:#067E6A}.c-NOR{--c:#804000;--l:#C06000;--l2:#D9A066;--t:#804000}.c-PIA{--c:#804000;--l:#C06000;--l2:#D9A066;--t:#804000}.c-HAD{--c:#142948;--l:#254D87;--l2:#7C94B7;--t:#142948}.c-LAW{--c:#0038C2;--l:#3365E0;--l2:#85A3EC;--t:#0038C2}.c-GAS{--c:#004E70;--l:#0078AC;--l2:#66AECD;--t:#004E70}.c-Mercedes{--c:#067E6A;--l:#16B99E;--l2:#73D5C5;--t:#067E6A}.c-Ferrari{--c:#5C0012;--l:#A20020;--l2:#C76679;--t:#5C0012}.c-RedBull{--c:#142948;--l:#254D87;--l2:#7C94B7;--t:#142948}.c-McLaren{--c:#804000;--l:#C06000;--l2:#D9A066;--t:#804000}.c-RBF1Team{--c:#0038C2;--l:#3365E0;--l2:#85A3EC;--t:#0038C2}.c-AlpineF1Team{--c:#004E70;--l:#0078AC;--l2:#66AECD;--t:#004E70}.c-VER{--c:#142948;--l:#254D87;--l2:#7C94B7;--t:#142948}.c-ANT{--c:#067E6A;--l:#16B99E;--l2:#73D5C5;--t:#067E6A}.c-HAM{--c:#5C0012;--l:#A20020;--l2:#C76679;--t:#5C0012}}</style></head><body><main>
 <header class="top"><p class="brand"><a href="https://github.com/ceejt/Slipstream" target="_blank" rel="noopener noreferrer" aria-label="Slipstream, source code on GitHub (opens in a new tab)"><svg class="logo" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M30 16C30 19.713 28.525 23.274 25.8995 25.8995C23.274 28.525 19.713 30 16 30C12.287 30 8.72601 28.525 6.1005 25.8995C3.475 23.274 2 19.713 2 16C2 12.287 3.475 8.72601 6.1005 6.1005C8.72601 3.475 12.287 2 16 2C19.713 2 23.274 3.475 25.8995 6.1005C28.525 8.72601 30 12.287 30 16Z" stroke-width="2.5" stroke="#E10600"/><path class="hl" d="M30 16C30 19.713 28.525 23.274 25.8995 25.8995C23.274 28.525 19.713 30 16 30C12.287 30 8.72601 28.525 6.1005 25.8995C3.475 23.274 2 19.713 2 16C2 12.287 3.475 8.72601 6.1005 6.1005C8.72601 3.475 12.287 2 16 2C19.713 2 23.274 3.475 25.8995 6.1005C28.525 8.72601 30 12.287 30 16Z" stroke-width="0.5"/><path d="M26 6L21 10H13C11.5 10 10.5 10.5 9.5 11.5L8.5 12.5C7 14 8 16 10 16H22C24 16 25 18 23.5 19.5L22.5 20.5C21.5 21.5 20.5 22 19 22H11L6 26" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke="#E10600"/><path class="hl" d="M26 6L21 10H13C11.5 10 10.5 10.5 9.5 11.5L8.5 12.5C7 14 8 16 10 16H22C24 16 25 18 23.5 19.5L22.5 20.5C21.5 21.5 20.5 22 19 22H11L6 26" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Slipstream</a></p><div class="topr"><nav class="nav" aria-label="Sections"><a href="../index.html">Podium predictor</a><a href="../lab/index.html" aria-current=page>Race lab</a></nav></div></header>
 <h1>Race lab</h1>
 <p class="claim">A lap-by-lap race simulator built from public lap data. It is separate from the podium predictions: those come from a model trained on results, this one replays the race.</p>
@@ -369,7 +370,7 @@ function fan(root){
     var g=el('g',{'clip-path':'url(#fanclip)'},svg);
     var ends=[];
     S.forEach(function(r){
-      var gs=el('g',{'class':'c-'+r.key+(rows().indexOf(r)>=6?' minor':'')},g),p=r.path,d='';
+      var gs=el('g',{'class':'c-'+r.key+(rows().indexOf(r)>=6?' minor':'')+(r.dash?' alt':'')},g),p=r.path,d='';
       for(var i=0;i<R;i++)d+=(i?'L':'M')+X(i)+','+Y(p.high[i]);
       for(var i=R-1;i>=0;i--)d+='L'+X(i)+','+Y(p.low[i]);
       el('path',{d:d+'Z','class':'band'},gs);
@@ -381,7 +382,9 @@ function fan(root){
     ends.sort(function(a,b){return a.y-b.y});
     for(var i=1;i<ends.length;i++)if(ends[i].y<ends[i-1].y+15)ends[i].y=ends[i-1].y+15;
     var labs=el('g',{},svg);
-    ends.forEach(function(e){if(Math.abs(e.y-e.y0)>2)el('line',{x1:ml+pw+2,y1:e.y0,x2:ml+pw+8,y2:e.y,'class':'lead-line c-'+e.r.key},labs);el('text',{x:ml+pw+10,y:e.y+4,'class':'endlab c-'+e.r.key},labs,(e.r.name.length>9?e.r.name.slice(0,9):e.r.name)+(narrow?'':' '+Math.round(e.r.path.mean[R-1])))});
+    ends.forEach(function(e){var cl='c-'+e.r.key+(e.r.dash?' alt':'');if(Math.abs(e.y-e.y0)>2)el('line',{x1:ml+pw+2,y1:e.y0,x2:ml+pw+8,y2:e.y,'class':'lead-line '+cl},labs);
+      var mk=el('g',{'class':cl},labs);if(e.r.dash)el('rect',{x:ml+pw+10,y:e.y-3,width:6,height:6,transform:'rotate(45 '+(ml+pw+13)+' '+e.y+')','class':'dot'},mk);else el('circle',{cx:ml+pw+13,cy:e.y,r:3,'class':'dot'},mk);
+      el('text',{x:ml+pw+22,y:e.y+4,'class':'endlab '+cl},labs,(e.r.name.length>9?e.r.name.slice(0,9):e.r.name)+(narrow?'':' '+Math.round(e.r.path.mean[R-1])))});
     var cross=el('line',{x1:0,x2:0,y1:mt,y2:mt+ph,'class':'cross'},svg);
     var hit=el('rect',{x:ml,y:mt,width:pw,height:ph,'class':'hit'},svg);
     function at(i,ui){st.idx=Math.max(0,Math.min(R-1,i));cross.setAttribute('x1',X(st.idx));cross.setAttribute('x2',X(st.idx));read();if(ui)showTip(S,X(st.idx));else tip.style.display='none'}
@@ -404,7 +407,7 @@ function fan(root){
     all.forEach(function(r,i){
       if(!st.all&&i>=6)return;
       var on=isOn(r,i);
-      var li=h('li');var b=h('button',{type:'button','aria-pressed':on?'true':'false','class':'c-'+r.key,title:'Show or hide '+r.name});
+      var li=h('li');var b=h('button',{type:'button','aria-pressed':on?'true':'false','class':'c-'+r.key+(r.dash?' alt':''),title:'Show or hide '+r.name});
       b.innerHTML='<span class="sw'+(r.dash?' dash':'')+'"></span><span><span class="nm">'+r.name+'</span><small>'+(on?'':'hidden, ')+Math.round(r.now)+' now, '+Math.round(r.expected)+' expected</small></span><span class="p">'+((i<3||r.p>=0.005)?pc(r.p):'')+'</span>';
       b.onclick=function(){st.off[st.mode+r.key]=!on;draw()};
       li.appendChild(b);side.appendChild(li);

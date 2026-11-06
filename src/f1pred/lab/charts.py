@@ -13,13 +13,54 @@ def _key(name):
     return re.sub(r"\W", "", str(name))
 
 
+def _rgb(h):
+    return [int(h[i:i + 2], 16) for i in (1, 3, 5)]
+
+
+def _hex(c):
+    return "#" + "".join(f"{round(v):02X}" for v in c)
+
+
+def _mix(a, b, t):
+    """Colour a moved a share t of the way towards b."""
+    return _hex([x + (y - x) * t for x, y in zip(_rgb(a), _rgb(b))])
+
+
+def _lum(h):
+    f = lambda v: v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = (f(v / 255) for v in _rgb(h))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _contrast(a, b):
+    hi, lo = sorted((_lum(a), _lum(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def _readable(colour, bg, towards):
+    """The colour, moved towards white or black in small steps until text of it reads at 4.5:1 on bg."""
+    for k in range(21):
+        c = _mix(colour, towards, k / 20)
+        if _contrast(c, bg) >= 4.5:
+            return c
+    return towards
+
+
+DARK_BG, LIGHT_BG = "#15151E", "#F7F4F1"
+
+
 def team_css(pairs):
-    """CSS classes that give each driver or team its colour: the stripe colour on dark, the card colour on light."""
+    """CSS classes that give each driver or team its colours.
+
+    --c is the colour for fills (stripe on dark, card colour on light); --l is for lines and bands, a mid tone on light so
+    lines are not near black; --l2 is a lighter tint for a team's second driver; --t is the colour for text, moved until it reads at 4.5:1.
+    """
     dark, light = "", ""
     for key, team in pairs:
         stripe, card = _team_info(team) or ("#888888", "#555555")
-        dark += f".c-{key}{{--c:{stripe}}}"
-        light += f".c-{key}{{--c:{card}}}"
+        mid = _mix(stripe, card, 0.5)
+        dark += f".c-{key}{{--c:{stripe};--l:{stripe};--l2:{_mix(stripe, '#FFFFFF', 0.45)};--t:{_readable(stripe, DARK_BG, '#FFFFFF')}}}"
+        light += f".c-{key}{{--c:{card};--l:{mid};--l2:{_mix(mid, '#FFFFFF', 0.4)};--t:{_readable(card, LIGHT_BG, '#000000')}}}"
     return f"{dark}@media(prefers-color-scheme:light){{{light}}}"
 
 
@@ -64,7 +105,7 @@ CSS = """
 .sec p,.sec li,.tile .c{text-wrap:pretty}
 .status,.answer{font:400 20px/28px var(--body);margin:0 0 16px;max-width:36em;text-wrap:balance}
 .status b,.answer b{font-weight:700}
-.status .tc{color:var(--c)}
+.status .tc{color:var(--t)}
 .caveat{font:400 14px/20px var(--body);color:var(--muted);margin:0 0 16px;max-width:54ch;border-top:1px solid var(--rule);padding-top:12px}
 .caveat b{color:var(--text)}
 .notes{list-style:none;margin:24px 0 0;padding:0;max-width:54ch}
@@ -75,7 +116,7 @@ CSS = """
 .tile{background:var(--surface);border:1px solid var(--rule);padding:16px}
 .tile .k{font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 8px}
 .tile .v{font:900 32px/36px var(--display);margin:0 0 8px}
-.tile .v .tc{color:var(--c)}
+.tile .v .tc{color:var(--t)}
 .tile .c{font:400 14px/20px var(--body);color:var(--muted);margin:0}
 .tile .c a{color:var(--text);text-underline-offset:3px}
 .panel-lab{background:var(--surface);border:1px solid var(--rule);padding:16px;margin:0 0 16px}
@@ -92,20 +133,21 @@ CSS = """
 .lab svg text{font:600 12px var(--body);fill:var(--muted)}
 .lab svg .grid{stroke:var(--rule);stroke-width:1}
 .lab svg .axis{fill:var(--muted)}
-.lab svg .band{fill:var(--c);opacity:.16}
-.lab svg .line{fill:none;stroke:var(--c);stroke-width:2.5;stroke-linejoin:round}
-.lab svg .dot{fill:var(--c)}
+.lab .alt{--l:var(--l2)}
+.lab svg .band{fill:var(--l);opacity:.16}
+.lab svg .line{fill:none;stroke:var(--l);stroke-width:2.5;stroke-linejoin:round}
+.lab svg .dot{fill:var(--l)}
 .lab svg .minor .line{stroke-width:1.5;opacity:.75}
 .lab svg .minor .band{opacity:.07}
 .lab svg .minor .dot{opacity:.75}
-.lab svg .endlab{fill:var(--c);font-weight:700}
+.lab svg .endlab{fill:var(--t);font-weight:700}
 .lab svg .cross{stroke:var(--text);stroke-width:1;opacity:.5}
 .lab svg .hit{fill:transparent;cursor:crosshair}
 .fan-svg:focus-visible,.heat-svg:focus-visible{outline:2px solid var(--text);outline-offset:4px}
 .rel{position:relative}
 .tip{position:absolute;z-index:3;pointer-events:none;background:var(--surface-2);border:1px solid var(--rule);padding:8px 12px;font:600 14px/20px var(--body);color:var(--text);white-space:nowrap;display:none}
 .tip .t{display:block;color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px}
-.tip .r{display:flex;justify-content:space-between;gap:16px;color:var(--c)}
+.tip .r{display:flex;justify-content:space-between;gap:16px;color:var(--t)}
 .tip .r b{color:var(--text);font-variant-numeric:tabular-nums}
 .tip .u{display:block;color:var(--muted);font-weight:400}
 .side{list-style:none;margin:0;padding:0}
@@ -117,7 +159,7 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .side .more{display:block;grid-template-columns:none}
 .more{background:none;border:0;border-top:1px solid var(--rule);color:var(--muted);font:600 14px/20px var(--body);width:100%;text-align:left;padding:12px 0;min-height:44px;cursor:pointer}
 .more:hover{color:var(--text)}
-.side .sw{width:28px;height:0;border-top:3px solid var(--c)}
+.side .sw{width:28px;height:0;border-top:3px solid var(--l)}
 .side .sw.dash{border-top-style:dashed}
 .side .p{font-variant-numeric:tabular-nums;font-weight:700}
 .side small{display:block;color:var(--muted);font-weight:400;font-size:12px}
@@ -143,7 +185,7 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .tyre{stroke:var(--rule);stroke-width:1}
 .lab svg .tyretxt{fill:#15151E;font-weight:700;text-anchor:middle}
 .lab svg .pitlab{font-size:13px;text-anchor:middle}
-.lab svg .lead-line{stroke:var(--c);stroke-width:1;opacity:.6}
+.lab svg .lead-line{stroke:var(--l);stroke-width:1;opacity:.6}
 .tables{margin:16px 0 0}
 .tables summary{cursor:pointer;color:var(--muted);font:600 14px/20px var(--body);padding:12px 0;min-height:44px}
 .tables summary:hover{color:var(--text)}
@@ -200,7 +242,7 @@ function fan(root){
     var g=el('g',{'clip-path':'url(#fanclip)'},svg);
     var ends=[];
     S.forEach(function(r){
-      var gs=el('g',{'class':'c-'+r.key+(rows().indexOf(r)>=6?' minor':'')},g),p=r.path,d='';
+      var gs=el('g',{'class':'c-'+r.key+(rows().indexOf(r)>=6?' minor':'')+(r.dash?' alt':'')},g),p=r.path,d='';
       for(var i=0;i<R;i++)d+=(i?'L':'M')+X(i)+','+Y(p.high[i]);
       for(var i=R-1;i>=0;i--)d+='L'+X(i)+','+Y(p.low[i]);
       el('path',{d:d+'Z','class':'band'},gs);
@@ -212,7 +254,9 @@ function fan(root){
     ends.sort(function(a,b){return a.y-b.y});
     for(var i=1;i<ends.length;i++)if(ends[i].y<ends[i-1].y+15)ends[i].y=ends[i-1].y+15;
     var labs=el('g',{},svg);
-    ends.forEach(function(e){if(Math.abs(e.y-e.y0)>2)el('line',{x1:ml+pw+2,y1:e.y0,x2:ml+pw+8,y2:e.y,'class':'lead-line c-'+e.r.key},labs);el('text',{x:ml+pw+10,y:e.y+4,'class':'endlab c-'+e.r.key},labs,(e.r.name.length>9?e.r.name.slice(0,9):e.r.name)+(narrow?'':' '+Math.round(e.r.path.mean[R-1])))});
+    ends.forEach(function(e){var cl='c-'+e.r.key+(e.r.dash?' alt':'');if(Math.abs(e.y-e.y0)>2)el('line',{x1:ml+pw+2,y1:e.y0,x2:ml+pw+8,y2:e.y,'class':'lead-line '+cl},labs);
+      var mk=el('g',{'class':cl},labs);if(e.r.dash)el('rect',{x:ml+pw+10,y:e.y-3,width:6,height:6,transform:'rotate(45 '+(ml+pw+13)+' '+e.y+')','class':'dot'},mk);else el('circle',{cx:ml+pw+13,cy:e.y,r:3,'class':'dot'},mk);
+      el('text',{x:ml+pw+22,y:e.y+4,'class':'endlab '+cl},labs,(e.r.name.length>9?e.r.name.slice(0,9):e.r.name)+(narrow?'':' '+Math.round(e.r.path.mean[R-1])))});
     var cross=el('line',{x1:0,x2:0,y1:mt,y2:mt+ph,'class':'cross'},svg);
     var hit=el('rect',{x:ml,y:mt,width:pw,height:ph,'class':'hit'},svg);
     function at(i,ui){st.idx=Math.max(0,Math.min(R-1,i));cross.setAttribute('x1',X(st.idx));cross.setAttribute('x2',X(st.idx));read();if(ui)showTip(S,X(st.idx));else tip.style.display='none'}
@@ -235,7 +279,7 @@ function fan(root){
     all.forEach(function(r,i){
       if(!st.all&&i>=6)return;
       var on=isOn(r,i);
-      var li=h('li');var b=h('button',{type:'button','aria-pressed':on?'true':'false','class':'c-'+r.key,title:'Show or hide '+r.name});
+      var li=h('li');var b=h('button',{type:'button','aria-pressed':on?'true':'false','class':'c-'+r.key+(r.dash?' alt':''),title:'Show or hide '+r.name});
       b.innerHTML='<span class="sw'+(r.dash?' dash':'')+'"></span><span><span class="nm">'+r.name+'</span><small>'+(on?'':'hidden, ')+Math.round(r.now)+' now, '+Math.round(r.expected)+' expected</small></span><span class="p">'+((i<3||r.p>=0.005)?pc(r.p):'')+'</span>';
       b.onclick=function(){st.off[st.mode+r.key]=!on;draw()};
       li.appendChild(b);side.appendChild(li);
