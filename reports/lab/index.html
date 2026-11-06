@@ -271,6 +271,18 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .hint{font:400 14px/20px var(--body);color:var(--muted);margin:8px 0 0;max-width:54ch}
 .heat-svg .cell{fill:var(--c);cursor:pointer}
 .heat-svg .tick{stroke:var(--text);stroke-width:2.5}
+.planwrap{display:none;margin:0 0 16px}
+.pltitle{font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 4px}
+.planlist{list-style:none;margin:0;padding:0}
+.planlist button{display:grid;grid-template-columns:20px 1fr auto;gap:2px 12px;align-items:center;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--rule);color:var(--text);padding:10px 8px;min-height:44px;font:600 14px/20px var(--body);cursor:pointer}
+.planlist button[aria-pressed=true]{background:var(--surface-2)}
+.planlist .n{color:var(--muted);font-variant-numeric:tabular-nums}
+.planlist b{font-variant-numeric:tabular-nums}
+.pbar{grid-column:2/4;height:4px;background:var(--surface-2)}
+.planlist button[aria-pressed=true] .pbar{background:var(--surface)}
+.pbar i{display:block;height:100%;background:var(--c)}
+.cellcap{display:none;font:600 14px/20px var(--body);margin:12px 0 0}
+@media(max-width:734px){.planwrap{display:block}.cellcap{display:block}.panel-lab .tip{display:none!important}}
 .heat-svg .ring{fill:none;stroke:var(--text);stroke-width:2;pointer-events:none}
 .heat-svg .best{fill:none;stroke:var(--text);stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
 .heat-svg .rowlab{fill:var(--text)}
@@ -485,6 +497,7 @@ function heat(root){
   var S=D.st;if(!S)return;
   var di=0,sel=null,hv=null;
   var tabs=h('label',{'class':'pick'},'Driver '),pk=h('select',{});tabs.appendChild(pk);root.appendChild(tabs);
+  var pw=h('div',{'class':'planwrap'});root.appendChild(pw);
   var box=h('div',{'class':'panel-lab rel'});root.appendChild(box);
   var tip=h('div',{'class':'tip'});box.appendChild(tip);
   var quick=h('div');root.appendChild(quick);
@@ -492,6 +505,7 @@ function heat(root){
   var svg=el('svg',{'class':'heat-svg',role:'application',tabindex:'0','aria-label':'Expected points for each one stop plan. Use the arrow keys to move between plans, or B for the best plan.'});
   box.appendChild(svg);
   S.drivers.forEach(function(d,i){pk.appendChild(h('option',{value:i},d.driver+' ('+d.team+')'))});
+  var ccap=h('p',{'class':'cellcap'});box.appendChild(ccap);
   pk.onchange=function(){di=+pk.value;sel=null;draw()};
   box.appendChild(h('p',{'class':'hint'},'Solid outline: the plan you are looking at. Dashed outline: the best plan for this driver. Numbers mark the three best plans. Columns are the lap of the stop. Move over the squares or use the arrow keys; press B to jump to the best plan.'));
   var G={};
@@ -536,6 +550,15 @@ function heat(root){
     var tp=d.typical.points,tk=(tp-r0.min)/Math.max(r0.max-r0.min,.01);
     if(tk>=0&&tk<=1){el('line',{x1:ml+lw*tk,x2:ml+lw*tk,y1:ly-6,y2:ly+16,'class':'tick'},svg);el('text',{x:ml+lw*tk,y:ly+26,'text-anchor':'middle'},svg,'typical '+tp.toFixed(1))}
     else el('text',{x:ml+lw/2,y:ly+26,'text-anchor':'middle'},svg,'typical plan: '+tp.toFixed(1)+' (below this range)');
+    clear(pw);pw.className='planwrap c-'+d.driver;
+    var ord=H.orders.map(function(o,r){var bc=0;H.points[r].forEach(function(v,c){if(v>H.points[r][bc])bc=c});return {r:r,c:bc,v:H.points[r][bc]}}).sort(function(p,q){return q.v-p.v}).slice(0,5);
+    pw.appendChild(h('p',{'class':'pltitle'},'Best stop lap for each tyre order, top '+ord.length));
+    var ol=h('ol',{'class':'planlist'});pw.appendChild(ol);
+    ord.forEach(function(o,i){
+      var li=h('li'),b=h('button',{type:'button','aria-pressed':'false','data-r':o.r,'data-c':o.c});
+      b.innerHTML='<span class="n">'+(i+1)+'</span><span>'+cap(H.orders[o.r][0])+' then '+cap(H.orders[o.r][1])+', stop on lap '+H.laps[o.c]+'</span><b>'+o.v.toFixed(1)+'</b><span class="pbar"><i style="width:'+Math.max(4,Math.round(100*(o.v-r0.min)/Math.max(r0.max-r0.min,.01)))+'%"></i></span>';
+      b.onclick=function(){pick(o.r,o.c,false)};li.appendChild(b);ol.appendChild(li);
+    });
     clear(quick);
     [['Best plan overall',function(){choose({stops:d.best.stops,laps:d.best.laps,tyres:d.best.tyres},d.best)}],
      ['Best two stop',function(){var b=H.best_two;choose({stops:b.stops,laps:b.laps,tyres:b.tyres},b)}],
@@ -543,10 +566,12 @@ function heat(root){
     if(keep&&keep.r!==null&&keep.r<nO&&keep.c<nL)pick(keep.r,keep.c);else pick(best.r,best.c);
   }
   function mark(){if(!sel||!G.ring)return;
+    [].forEach.call(pw.querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',sel.r!==null&&+b.getAttribute('data-r')===sel.r&&+b.getAttribute('data-c')===sel.c?'true':'false')});
     if(G.vs){if(sel.r===null||G.top[sel.r+','+sel.c])G.vs.setAttribute('visibility','hidden');else{G.vs.setAttribute('visibility','visible');G.vs.setAttribute('style',ink(G.fills[sel.r+','+sel.c]));G.vs.setAttribute('x',G.ml+sel.c*G.cw+G.cw/2);G.vs.setAttribute('y',G.mt+sel.r*G.rh+G.rh/2+4);G.vs.textContent=sel.m.points.toFixed(1)}}
     if(sel.r===null){G.ring.setAttribute('width',0);G.ring.setAttribute('height',0)}else{G.ring.setAttribute('width',G.cw-2);G.ring.setAttribute('height',G.rh-2);G.ring.setAttribute('x',G.ml+sel.c*G.cw+1);G.ring.setAttribute('y',G.mt+sel.r*G.rh+1)}}
   function info(){
     var d=S.drivers[di],m=sel.m,t=d.typical,diff=m.points-t.points;
+    ccap.textContent=planText(sel.plan)+': '+m.points.toFixed(1)+' points, podium '+Math.round(m.podium*100)+'%, win '+Math.round(m.win*100)+'%.';
     clear(detail);detail.className='detail c-'+d.driver;
     var a=h('div'),b=h('div');detail.appendChild(a);detail.appendChild(b);
     a.appendChild(h('div',{'class':'dtitle'},planText(sel.plan)));
