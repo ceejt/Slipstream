@@ -101,17 +101,21 @@ CSS = """
 .subnav a[aria-current=true]{color:var(--text);border-bottom-color:#E10600}
 .sec{scroll-margin-top:64px;margin:0 0 64px}
 .sec>h2{font:900 24px/28px var(--display);text-transform:uppercase;margin:0 0 8px}
-.sec>.lead,.cols>.lead{font:400 16px/24px var(--body);color:var(--muted);margin:0 0 24px;max-width:54ch;text-wrap:pretty}
+.sec>.lead{font:400 16px/24px var(--body);color:var(--muted);margin:0 0 24px;max-width:54ch;text-wrap:pretty}
 .sec p,.sec li,.tile .c{text-wrap:pretty}
 .status,.answer{font:400 20px/28px var(--body);margin:0 0 16px;max-width:36em;text-wrap:balance}
 .status b,.answer b{font-weight:700}
 .status .tc{color:var(--t)}
-.caveat{font:400 14px/20px var(--body);color:var(--muted);margin:0 0 16px;max-width:54ch;border-top:1px solid var(--rule);padding-top:12px}
-.cols{display:grid;gap:0 48px;margin:0 0 24px}
-.cols>.lead{margin:0 0 16px}
-.cols>.caveat{margin:0}
-@media(min-width:735px){.cols{grid-template-columns:1fr 1fr;align-items:start}.cols>.lead{margin:0;max-width:none}.cols>.caveat{max-width:none;border-top:0;padding:0 0 0 24px;border-left:1px solid var(--rule)}}
-.caveat b{color:var(--text)}
+.trust{display:grid;gap:16px 48px;margin:24px 0 0;border-top:1px solid var(--rule);padding-top:16px}
+@media(min-width:735px){.trust{grid-template-columns:1fr 1fr;align-items:start}}
+.trust p{font:400 14px/20px var(--body);color:var(--muted);margin:0}
+.trust .tl b{color:var(--text)}
+.fig{margin:0}.fig figcaption{font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 8px}
+.figrow{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font:600 14px/20px var(--body);margin:0 0 8px}
+.figrow b{font-variant-numeric:tabular-nums}
+.figrow i{grid-column:1/3;display:block;height:6px;background:var(--text)}
+.figrow:nth-of-type(2) i{background:var(--muted)}
+.fig p{margin:4px 0 0}
 .notes{list-style:none;margin:24px 0 0;padding:0;max-width:54ch}
 .notes li{font:400 14px/20px var(--body);color:var(--muted);padding:12px 0;border-top:1px solid var(--rule)}
 .notes b{color:var(--text)}

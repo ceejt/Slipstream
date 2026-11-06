@@ -17,7 +17,14 @@ LAB_CSS = """
 @media(min-width:735px){.lab-grid{grid-template-columns:1fr 1fr}}
 .lab-grid .scroll{margin:0}
 .verdict{border-left:2px solid #E10600;padding:4px 0 4px 16px;margin:24px 0}
-.verdict p{margin:0}
+.verdict p{margin:0;font-weight:400}
+.verdict .vhead b{font-weight:700}
+.vrows{margin:12px 0;padding:0;max-width:44em}
+.vrows div{display:grid;grid-template-columns:minmax(0,15em) 1fr;gap:4px 16px;padding:6px 0;border-top:1px solid var(--rule)}
+.vrows dt{color:var(--muted)}
+.vrows dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
+.vrows dd span{font-weight:400;color:var(--muted)}
+.verdict .vnote{color:var(--muted);font-size:14px;line-height:20px}
 .method .soon-list{list-style:none;padding:0;margin:0}
 .method .soon-list li{padding:0;margin:0}
 .method h3{margin:32px 0 8px}
@@ -39,13 +46,15 @@ def _table(caption, head, body):
 def _verdict(ev):
     d = ev["brier_difference"]
     vs_blend, vs_grid = d["simulator minus blend"], d["simulator minus grid logistic"]
-    fmt = lambda x: f'{x["diff"]:+.4f} (95% interval {x["low"]:+.4f} to {x["high"]:+.4f})'
+    fmt = lambda x: f'{x["diff"]:+.3f} <span>(95% interval {x["low"]:+.3f} to {x["high"]:+.3f})</span>'
     rel = lambda x, name: (f"better than {name}" if x["high"] < 0 else f"worse than {name}" if x["low"] > 0
                            else f"not clearly different from {name}")
-    return (f'<p><b>As a podium forecaster, the simulator is {rel(vs_blend, "the podium model")} and '
-            f'{rel(vs_grid, "a formula on grid position alone")}.</b> '
-            f'Brier score difference to the podium model: {fmt(vs_blend)}. To the grid formula: {fmt(vs_grid)}. '
-            'The Brier score is the average squared miss of the chances, and negative means the simulator is better. Intervals come from resampling whole races, on the seasons it was not tuned on.</p>')
+    return (f'<p class="vhead"><b>As a podium forecaster, the simulator is {rel(vs_blend, "the podium model")} and '
+            f'{rel(vs_grid, "a formula on grid position alone")}.</b></p>'
+            f'<dl class="vrows"><div><dt>Against the podium model</dt><dd>{fmt(vs_blend)}</dd></div>'
+            f'<div><dt>Against the grid formula</dt><dd>{fmt(vs_grid)}</dd></div></dl>'
+            '<p class="vnote">These are differences in Brier score, the average squared miss of the chances. Negative means the simulator is better. '
+            'Intervals come from resampling whole races, on the seasons it was not tuned on.</p>')
 
 
 def _chance(p):
@@ -61,17 +70,24 @@ def _champ_tables(ch):
     return table(ch["drivers"], "Driver", 8) + table(ch["constructors"], "Team", 5)
 
 
+def _bars(rows):
+    top = max(v for _, v, _ in rows) or 1
+    return "".join(f'<div class="figrow"><span>{label}</span><b>{text}</b><i style="width:{max(v / top * 100, 2):.0f}%"></i></div>' for label, v, text in rows)
+
+
 def _champ_check(bt):
     if not bt:
         return ""
     early = [b for b in bt if b["after_round"] <= 12]
     late = [b for b in bt if b["after_round"] > 12]
     avg = lambda rows, k: sum(r[k] for r in rows) / len(rows)
-    return (f'<b>Checked on {len(bt)} points in 2023 to 2025</b> (after rounds 8 to 20, using only earlier races). '
-            f'The real drivers\' champion was given {avg(bt, "p_driver_champion") * 100:.0f}% on average and the real constructors\' champion '
-            f'{avg(bt, "p_constructor_champion") * 100:.0f}%. Expected final points were {avg(early, "driver_points_error"):.0f} off after rounds 8 and 12, '
-            f'against {avg(early, "extrapolation_error"):.0f} for assuming each driver keeps scoring at the rate so far; later the two are about equal '
-            f'({avg(late, "driver_points_error"):.0f} against {avg(late, "extrapolation_error"):.0f}). Three seasons is little, so the title chances are rough.')
+    seasons = len({b["year"] for b in bt})
+    eb, ee, lb, le = avg(early, "extrapolation_error"), avg(early, "driver_points_error"), avg(late, "extrapolation_error"), avg(late, "driver_points_error")
+    return (f'<div class="trust"><p class="tl"><b>Rough: checked on only {seasons} seasons.</b> After rounds 8 to 20, using only earlier races, the real drivers\' champion was given '
+            f'{avg(bt, "p_driver_champion") * 100:.0f}% on average and the real constructors\' champion {avg(bt, "p_constructor_champion") * 100:.0f}%.</p>'
+            f'<figure class="fig"><figcaption>Average miss in final points, after rounds 8 and 12</figcaption>'
+            f'{_bars([("Simulator", ee, f"{ee:.0f} points"), ("Keep scoring at the rate so far", eb, f"{eb:.0f} points")])}'
+            f'<p>Later in the season it is {le:.0f} points against {lb:.0f}.</p></figure></div>')
 
 
 def _plan(x):
@@ -110,9 +126,12 @@ def _strategy_answer(st):
 def _strategy_caveat(chk):
     if not chk:
         return ""
-    return (f'<p class="caveat"><b>How far to trust this:</b> across {chk["drivers"]} drivers in {chk["races"]} past races, real gains were about '
-            f'{chk["slope"] * 100:.0f}% of the simulated ones (95% interval {chk["low"] * 100:.0f}% to {chk["high"] * 100:.0f}%). '
-            'Read the ranking of plans, not the size of the gain.</p>')
+    real = chk["slope"] * 100
+    return (f'<div class="trust"><p class="tl"><b>Trust the ranking of plans, not the size of the gain.</b> Across {chk["drivers"]} drivers in {chk["races"]} past races, '
+            'the simulator\'s rating of a plan moved with how far ahead the driver finished.</p>'
+            f'<figure class="fig"><figcaption>Real gain as a share of the simulated gain</figcaption>'
+            f'{_bars([("In the simulator", 100, "100%"), ("In real races", real, f"about {real:.0f}%")])}'
+            f'<p>95% interval {chk["low"] * 100:.0f}% to {chk["high"] * 100:.0f}%.</p></figure></div>')
 
 
 def _strategy_notes(st):
@@ -184,16 +203,16 @@ def render(ev, ch=None, bt=None, st=None, chk=None):
         if done:
             status = f'<p class="status"><b>{" and ".join(done)}.</b> The points left are not enough for anyone else to catch up.</p>'
     champ = f"""<section class="sec" id="championship"><h2>Championship</h2>
-{status}<div class="cols"><p class="lead">Every remaining race is simulated thousands of times and the points are added up. Lines are the average; shaded bands cover 90% of simulated seasons.</p>
-{f'<p class="caveat">{_champ_check(bt)}</p>' if bt else ""}</div>
+{status}<p class="lead">Every remaining race is simulated thousands of times and the points are added up. Lines are the average; shaded bands cover 90% of simulated seasons.</p>
 <div id="fan-root"></div>
+{_champ_check(bt)}
 <details class="tables"><summary>Show as tables</summary>{_champ_tables(ch)}</details></section>""" if ch else ""
     when = "Qualifying has not been run, so each simulated race draws its own grid from the pace forecast. " if st and not st["grid_known"] else "The grid is the real qualifying order. "
     strat = f"""<section class="sec" id="strategy"><h2>Pit strategy</h2>
 {_strategy_answer(st)}
-<div class="cols"><p class="lead">{escape(st["event"])}, {st["laps"]} laps, a pit stop costs {st["pit_loss_s"]} s. {when}Each square is a one-stop plan, played {st["simulations"]:,} times for the chosen driver while the rest of the field follows typical strategies. A stronger colour means more expected points.</p>
-{_strategy_caveat(chk)}</div>
+<p class="lead">{escape(st["event"])}, {st["laps"]} laps, a pit stop costs {st["pit_loss_s"]} s. {when}Each square is a one-stop plan, played {st["simulations"]:,} times for the chosen driver while the rest of the field follows typical strategies. A stronger colour means more expected points.</p>
 <div id="heat-root"></div>
+{_strategy_caveat(chk)}
 {_strategy_notes(st)}
 <details class="tables"><summary>Show as tables</summary>{_strategy_tables(st)}</details></section>""" if st else ""
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
