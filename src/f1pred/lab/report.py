@@ -18,8 +18,9 @@ LAB_CSS = """
 .lab-grid .scroll{margin:0}
 .verdict{border-left:2px solid #E10600;padding:4px 0 4px 16px;margin:24px 0}
 .verdict p{margin:0}
-.soon-list{list-style:none;padding:0;margin:0}
-.soon-list li{padding:12px 0;border-top:1px solid var(--rule)}
+.method .soon-list{list-style:none;padding:0;margin:0}
+.method .soon-list li{padding:0;margin:0}
+.method h3{margin:32px 0 8px}
 .soon-list b{font-weight:700}
 .back{margin:0 0 32px}
 .back a{display:inline-block;padding:12px 0;min-height:44px;color:var(--text);font:600 14px/20px var(--body)}

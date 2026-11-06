@@ -122,7 +122,7 @@ CSS = """
 .tile .v{font:900 32px/36px var(--display);margin:0 0 8px}
 .tile .v .tc{color:var(--t)}
 .tile .c{font:400 14px/20px var(--body);color:var(--muted);margin:0}
-.tile .c a{color:var(--text);text-underline-offset:3px}
+.tile .c a{color:var(--text);text-underline-offset:3px;display:inline-block;padding:12px 0;margin:-12px 0}
 .panel-lab{background:var(--surface);border:1px solid var(--rule);padding:16px;margin:0 0 16px}
 .seg{display:inline-flex;border:1px solid var(--rule);margin:0 8px 16px 0}
 .seg button,.chip{background:none;border:0;color:var(--muted);font:600 14px/20px var(--body);padding:10px 16px;min-height:44px;cursor:pointer}
@@ -189,7 +189,8 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .dstats b{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
 .dbar{fill:var(--c)}
 .detail svg text{font-size:14px}
-.barref{fill:none;stroke:var(--text);stroke-width:1.5;stroke-dasharray:3 2}
+.barref{stroke:var(--text);stroke-width:2.5}
+.cellval{fill:var(--text);stroke:var(--surface);stroke-width:3px;paint-order:stroke;font:700 12px var(--body);text-anchor:middle;pointer-events:none}
 .tyre{stroke:var(--rule);stroke-width:1}
 .lab svg .tyretxt{fill:#15151E;font-weight:700;text-anchor:middle}
 .lab svg .pitlab{font-size:13px;text-anchor:middle}
@@ -340,7 +341,7 @@ function dist(d,ref){
     el('rect',{x:x+3,y:H-mb-hh,width:bw-6,height:Math.max(hh,1),'class':'dbar'},s);
     el('text',{x:x+bw/2,y:H-6,'text-anchor':'middle'},s,i<10?'P'+(i+1):'11+');
     var rh=ref?(H-mt-mb)*ref[i]/mx:0;if(Math.max(hh,rh)>14)el('text',{x:x+bw/2,y:H-mb-Math.max(hh,rh)-5,'text-anchor':'middle'},s,Math.round(v*100));
-    if(ref){el('rect',{x:x+3,y:H-mb-rh,width:bw-6,height:Math.max(rh,1),'class':'barref'},s)}
+    if(ref)el('line',{x1:x+1,x2:x+bw-1,y1:H-mb-rh,y2:H-mb-rh,'class':'barref'},s);
   });
   return s;
 }
@@ -377,7 +378,7 @@ function heat(root){
       el('text',{x:ml-10,y:mt+r*rh+rh/2+4,'text-anchor':'end','class':'rowlab'},svg,cap(o[0])+' then '+cap(o[1]));
       H.laps.forEach(function(lap,c){
         var v=H.points[r][c],k=(v-r0.min)/Math.max(r0.max-r0.min,.01);
-        el('rect',{x:ml+c*cw+.5,y:mt+r*rh+.5,width:cw-1,height:rh-1,'class':'cell','fill-opacity':(.08+.92*Math.pow(k,GAM)).toFixed(3)},svg);
+        el('rect',{x:ml+c*cw+.5,y:mt+r*rh+.5,width:cw-1,height:rh-1,'class':'cell','fill-opacity':(.22+.78*Math.pow(k,GAM)).toFixed(3)},svg);
         if(!best||v>best.v)best={v:v,r:r,c:c};
       });
     });
@@ -385,9 +386,10 @@ function heat(root){
     G={ml:ml,mt:mt,cw:cw,rh:rh,W:W,nL:nL,nO:nO,best:best};
     el('rect',{x:ml+best.c*cw-1,y:mt+best.r*rh-1,width:cw+2,height:rh+2,'class':'best'},svg);
     var ring=el('rect',{x:0,y:0,width:cw,height:rh,'class':'ring',id:'heatring'},svg);G.ring=ring;
+    if(cw>=26){G.vb=el('text',{x:ml+best.c*cw+cw/2,y:mt+best.r*rh+rh/2+4,'class':'cellval'},svg,best.v.toFixed(1));G.vs=el('text',{'class':'cellval',visibility:'hidden'},svg,'')}else{G.vb=G.vs=null}
     // legend
     var ly=mt+ph+22,defs=el('defs',{},svg),lg=el('linearGradient',{id:'heatgrad'},defs);
-    [0,.25,.5,.75,1].forEach(function(o){el('stop',{offset:o,style:'stop-color:var(--c);stop-opacity:'+(.08+.92*Math.pow(o,GAM)).toFixed(3)},lg)});
+    [0,.25,.5,.75,1].forEach(function(o){el('stop',{offset:o,style:'stop-color:var(--c);stop-opacity:'+(.22+.78*Math.pow(o,GAM)).toFixed(3)},lg)});
     var lw=Math.min(260,W-ml-8);el('rect',{x:ml,y:ly,width:lw,height:10,fill:'url(#heatgrad)'},svg);
     el('text',{x:ml,y:ly+26},svg,r0.min.toFixed(1)+' points');el('text',{x:ml+lw,y:ly+26,'text-anchor':'end'},svg,r0.max.toFixed(1));
     var tp=d.typical.points,tk=(tp-r0.min)/Math.max(r0.max-r0.min,.01);
@@ -399,14 +401,16 @@ function heat(root){
      ['Typical plan for the field',function(){choose(d.typical_plan,d.typical)}]].forEach(function(q){var b=h('button',{type:'button','class':'chip'},q[0]);b.onclick=q[1];quick.appendChild(b)});
     if(keep&&keep.r!==null&&keep.r<nO&&keep.c<nL)pick(keep.r,keep.c);else pick(best.r,best.c);
   }
-  function mark(){if(!sel||!G.ring)return;if(sel.r===null){G.ring.setAttribute('width',0);G.ring.setAttribute('height',0)}else{G.ring.setAttribute('width',G.cw-2);G.ring.setAttribute('height',G.rh-2);G.ring.setAttribute('x',G.ml+sel.c*G.cw+1);G.ring.setAttribute('y',G.mt+sel.r*G.rh+1)}}
+  function mark(){if(!sel||!G.ring)return;
+    if(G.vs){if(sel.r===null||(sel.r===G.best.r&&sel.c===G.best.c))G.vs.setAttribute('visibility','hidden');else{G.vs.setAttribute('visibility','visible');G.vs.setAttribute('x',G.ml+sel.c*G.cw+G.cw/2);G.vs.setAttribute('y',G.mt+sel.r*G.rh+G.rh/2+4);G.vs.textContent=sel.m.points.toFixed(1)}}
+    if(sel.r===null){G.ring.setAttribute('width',0);G.ring.setAttribute('height',0)}else{G.ring.setAttribute('width',G.cw-2);G.ring.setAttribute('height',G.rh-2);G.ring.setAttribute('x',G.ml+sel.c*G.cw+1);G.ring.setAttribute('y',G.mt+sel.r*G.rh+1)}}
   function info(){
     var d=S.drivers[di],m=sel.m,t=d.typical,diff=m.points-t.points;
     clear(detail);detail.className='detail c-'+d.driver;
     var a=h('div'),b=h('div');detail.appendChild(a);detail.appendChild(b);
     a.appendChild(h('div',{'class':'dtitle'},planText(sel.plan)));
     a.appendChild(h('div',{'class':'dstats'},'<span>Expected points <b>'+m.points.toFixed(1)+'</b></span><span>Against typical <b>'+(diff>=0?'+':'')+diff.toFixed(1)+'</b></span><span>Podium <b>'+Math.round(m.podium*100)+'%</b></span><span>Win <b>'+Math.round(m.win*100)+'%</b></span>'));
-    a.appendChild(h('div',{'class':'dstats'},'Where the driver finishes, percent. Dashed outline: the typical plan.'));
+    a.appendChild(h('div',{'class':'dstats'},'Where the driver finishes, percent. The white line marks the typical plan.'));
     a.appendChild(dist(m.dist,t.dist));
     var rows=[{label:'Selected',plan:sel.plan},{label:'Typical',plan:d.typical_plan},{label:'Best overall',plan:{stops:d.best.stops,laps:d.best.laps,tyres:d.best.tyres}},{label:'Best two stop',plan:{stops:d.heat.best_two.stops,laps:d.heat.best_two.laps,tyres:d.heat.best_two.tyres}}];
     b.appendChild(h('div',{'class':'dtitle'},'Tyre stints, '+S.laps+' laps'));

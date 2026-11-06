@@ -62,7 +62,7 @@ border-bottom:2px solid transparent;margin-bottom:-14px}
 .back{color:var(--text);text-decoration:none;border:1px solid var(--rule);border-radius:4px;padding:4px 12px;
 font:600 14px/20px var(--body);transition:background-color .15s cubic-bezier(.4,0,.2,1)}
 .back:hover{background:var(--surface-2)}
-.brand a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:10px}
+.brand a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:10px;padding:8px 0;margin:-8px 0}
 .brand .logo{flex:none;width:1em;height:1em}
 .brand .hl{stroke:var(--text)}
 .brand a:hover{text-decoration:underline;text-underline-offset:4px}
@@ -126,7 +126,7 @@ animation:grow .3s cubic-bezier(.4,0,.2,1) both;animation-delay:calc(var(--i)*30
 .made{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:48px 0 0;padding-top:16px;border-top:1px solid var(--rule);color:var(--muted);font:600 14px/20px var(--body)}
 .made .gh{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:-12px -10px -12px 0;color:var(--text);text-decoration:none}
 .made .gh:hover,.made .gh:focus-visible{color:var(--muted)}
-.made a:not(.gh){color:var(--text);font-weight:700;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}
+.made a:not(.gh){color:var(--text);font-weight:700;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px;display:inline-block;padding:12px 4px;margin:-12px -4px}
 @supports (background-clip:text) or (-webkit-background-clip:text){
 .made a:not(.gh){background:repeating-linear-gradient(105deg,var(--chrome-lo) 0,var(--chrome-hi) 9px,var(--chrome-lo) 18px) 0 0/300% 100%;
 -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
