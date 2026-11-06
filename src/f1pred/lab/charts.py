@@ -53,14 +53,14 @@ def team_css(pairs):
     """CSS classes that give each driver or team its colours.
 
     --c is the colour for fills (stripe on dark, card colour on light); --l is for lines and bands, a mid tone on light so
-    lines are not near black; --l2 is a lighter tint for a team's second driver; --t is the colour for text, moved until it reads at 4.5:1.
+    lines are not near black; --l2 is a lighter tint for a team's second driver; --t is the colour for text, moved until it reads at 4.5:1; --hi is the extreme end of the heatmap ramp (lighter on dark, darker on light).
     """
     dark, light = "", ""
     for key, team in pairs:
         stripe, card = _team_info(team) or ("#888888", "#555555")
         mid = _mix(stripe, card, 0.5)
-        dark += f".c-{key}{{--c:{stripe};--l:{stripe};--l2:{_mix(stripe, '#FFFFFF', 0.45)};--t:{_readable(stripe, DARK_BG, '#FFFFFF')}}}"
-        light += f".c-{key}{{--c:{card};--l:{mid};--l2:{_mix(mid, '#FFFFFF', 0.4)};--t:{_readable(card, LIGHT_BG, '#000000')}}}"
+        dark += f".c-{key}{{--c:{stripe};--l:{stripe};--l2:{_mix(stripe, '#FFFFFF', 0.45)};--hi:{_mix(stripe, '#FFFFFF', 0.45)};--t:{_readable(stripe, DARK_BG, '#FFFFFF')}}}"
+        light += f".c-{key}{{--c:{card};--l:{mid};--l2:{_mix(mid, '#FFFFFF', 0.4)};--hi:{_mix(card, '#000000', 0.3)};--t:{_readable(card, LIGHT_BG, '#000000')}}}"
     return f"{dark}@media(prefers-color-scheme:light){{{light}}}"
 
 
@@ -179,6 +179,7 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .pick select{background:var(--surface);color:var(--text);border:1px solid var(--rule);font:600 14px/20px var(--body);padding:10px 12px;min-height:44px;border-radius:0}
 .hint{font:400 14px/20px var(--body);color:var(--muted);margin:8px 0 0;max-width:54ch}
 .heat-svg .cell{fill:var(--c);cursor:pointer}
+.heat-svg .tick{stroke:var(--text);stroke-width:2.5}
 .heat-svg .ring{fill:none;stroke:var(--text);stroke-width:2;pointer-events:none}
 .heat-svg .best{fill:none;stroke:var(--text);stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
 .heat-svg .rowlab{fill:var(--text)}
@@ -315,7 +316,12 @@ function fan(root){
 }
 
 /* ---------- strategy heatmap ---------- */
-var GAM=1.8;
+var GAM=3,CUT=.6;
+function hx(v){v=(v||'').trim();return /^#[0-9a-f]{6}$/i.test(v)?[1,3,5].map(function(i){return parseInt(v.substr(i,2),16)}):null}
+function mx(a,b,t){return a.map(function(v,i){return v+(b[i]-v)*t})}
+function rgb(a){return 'rgb('+a.map(Math.round).join(',')+')'}
+function lum(a){var f=a.map(function(v){v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*f[0]+.7152*f[1]+.0722*f[2]}
+function ink(a){return a&&(1.05/(lum(a)+.05)>(lum(a)+.05)/.058)?'fill:#FFFFFF;stroke:none':a?'fill:#15151E;stroke:none':''}
 var TYRE={SOFT:'#F2433B',MEDIUM:'#FFD12E',HARD:'#F2F2F0'};
 function planText(p){var t=p.tyres.map(cap).join(' then ');return p.stops+(p.stops==1?' stop, ':' stops, ')+t+', '+(p.stops==1?'stop on lap ':'stops on laps ')+p.laps.join(' and ')}
 function stints(L,rows){
@@ -357,7 +363,7 @@ function heat(root){
   box.appendChild(svg);
   S.drivers.forEach(function(d,i){pk.appendChild(h('option',{value:i},d.driver+' ('+d.team+')'))});
   pk.onchange=function(){di=+pk.value;sel=null;draw()};
-  box.appendChild(h('p',{'class':'hint'},'Solid outline: the plan you are looking at. Dashed outline: the best plan for this driver. Columns are the lap of the stop. Move over the squares or use the arrow keys; press B to jump to the best plan.'));
+  box.appendChild(h('p',{'class':'hint'},'Solid outline: the plan you are looking at. Dashed outline: the best plan for this driver. Numbers mark the three best plans. Columns are the lap of the stop. Move over the squares or use the arrow keys; press B to jump to the best plan.'));
   var G={};
   function cells(){var d=S.drivers[di],H=d.heat,v=[];H.points.forEach(function(r){r.forEach(function(x){v.push(x)})});return {min:Math.min.apply(null,v),max:Math.max.apply(null,v)}}
   function pick(r,c,ui){var d=S.drivers[di],H=d.heat;sel={r:r,c:c,plan:{stops:1,laps:[H.laps[c]],tyres:H.orders[r]},m:{points:H.points[r][c],podium:H.podium[r][c],win:H.win[r][c],dist:H.dist[r][c]}};mark();info();if(ui)cellTip(r,c);else tip.style.display='none'}
@@ -373,27 +379,32 @@ function heat(root){
     var keep=sel;clear(svg);var d=S.drivers[di],H=d.heat,nL=H.laps.length,nO=H.orders.length;
     var W=Math.max(300,Math.min(Math.round(box.clientWidth-34)||900,900)),nar=W<520,ml=nar?108:150,mr=8,mt=28,cw=(W-ml-mr)/nL,rh=nar?30:36,ph=nO*rh,Ht=mt+ph+(nar?60:58);
     svg.setAttribute('viewBox','0 0 '+W+' '+Ht);svg.setAttribute('class','heat-svg c-'+d.driver);
-    var r0=cells(),best=null;
+    var r0=cells(),best=null,all=[];
+    var cs=getComputedStyle(svg),C0=hx(cs.getPropertyValue('--surface')),C1=hx(cs.getPropertyValue('--c')),C2=hx(cs.getPropertyValue('--hi'));
+    function toneA(k){if(!C0||!C1||!C2)return null;var u=Math.pow(k,GAM),b=mx(C0,C1,.18+.82*Math.min(1,u/CUT));return u>CUT?mx(b,C2,(u-CUT)/(1-CUT)):b}
+    function tone(k){var a=toneA(k);return a?rgb(a):null}
+    var fills={};
     H.orders.forEach(function(o,r){
       el('text',{x:ml-10,y:mt+r*rh+rh/2+4,'text-anchor':'end','class':'rowlab'},svg,cap(o[0])+' then '+cap(o[1]));
       H.laps.forEach(function(lap,c){
         var v=H.points[r][c],k=(v-r0.min)/Math.max(r0.max-r0.min,.01);
-        el('rect',{x:ml+c*cw+.5,y:mt+r*rh+.5,width:cw-1,height:rh-1,'class':'cell','fill-opacity':(.22+.78*Math.pow(k,GAM)).toFixed(3)},svg);
-        if(!best||v>best.v)best={v:v,r:r,c:c};
+        var ta=toneA(k),tn=ta&&rgb(ta),a={x:ml+c*cw+.5,y:mt+r*rh+.5,width:cw-1,height:rh-1,'class':'cell'};if(tn)a.style='fill:'+tn;else a['fill-opacity']=(.22+.78*Math.pow(k,GAM)).toFixed(3);el('rect',a,svg);
+        fills[r+','+c]=ta;all.push({v:v,r:r,c:c});if(!best||v>best.v)best={v:v,r:r,c:c};
       });
     });
     H.laps.forEach(function(lap,c){if(c%(nar?6:4)==0)el('text',{x:ml+c*cw+cw/2,y:mt-10,'text-anchor':'middle'},svg,lap)});
     G={ml:ml,mt:mt,cw:cw,rh:rh,W:W,nL:nL,nO:nO,best:best};
     el('rect',{x:ml+best.c*cw-1,y:mt+best.r*rh-1,width:cw+2,height:rh+2,'class':'best'},svg);
     var ring=el('rect',{x:0,y:0,width:cw,height:rh,'class':'ring',id:'heatring'},svg);G.ring=ring;
-    if(cw>=26){G.vb=el('text',{x:ml+best.c*cw+cw/2,y:mt+best.r*rh+rh/2+4,'class':'cellval'},svg,best.v.toFixed(1));G.vs=el('text',{'class':'cellval',visibility:'hidden'},svg,'')}else{G.vb=G.vs=null}
+    G.top={};all.sort(function(p,q){return q.v-p.v});
+    if(cw>=26){all.slice(0,3).forEach(function(t){G.top[t.r+','+t.c]=1;el('text',{x:ml+t.c*cw+cw/2,y:mt+t.r*rh+rh/2+4,'class':'cellval',style:ink(fills[t.r+','+t.c])},svg,t.v.toFixed(1))});G.fills=fills;G.vs=el('text',{'class':'cellval',visibility:'hidden'},svg,'')}else{G.vs=null}
     // legend
     var ly=mt+ph+22,defs=el('defs',{},svg),lg=el('linearGradient',{id:'heatgrad'},defs);
-    [0,.25,.5,.75,1].forEach(function(o){el('stop',{offset:o,style:'stop-color:var(--c);stop-opacity:'+(.22+.78*Math.pow(o,GAM)).toFixed(3)},lg)});
+    [0,.2,.4,.6,.8,1].forEach(function(o){var tn=tone(o);el('stop',{offset:o,style:tn?'stop-color:'+tn:'stop-color:var(--c);stop-opacity:'+(.22+.78*Math.pow(o,GAM)).toFixed(3)},lg)});
     var lw=Math.min(260,W-ml-8);el('rect',{x:ml,y:ly,width:lw,height:10,fill:'url(#heatgrad)'},svg);
     el('text',{x:ml,y:ly+26},svg,r0.min.toFixed(1)+' points');el('text',{x:ml+lw,y:ly+26,'text-anchor':'end'},svg,r0.max.toFixed(1));
     var tp=d.typical.points,tk=(tp-r0.min)/Math.max(r0.max-r0.min,.01);
-    if(tk>=0&&tk<=1){el('line',{x1:ml+lw*tk,x2:ml+lw*tk,y1:ly-4,y2:ly+14,stroke:'currentColor','class':'cross'},svg);el('text',{x:ml+lw*tk,y:ly+26,'text-anchor':'middle'},svg,'typical '+tp.toFixed(1))}
+    if(tk>=0&&tk<=1){el('line',{x1:ml+lw*tk,x2:ml+lw*tk,y1:ly-6,y2:ly+16,'class':'tick'},svg);el('text',{x:ml+lw*tk,y:ly+26,'text-anchor':'middle'},svg,'typical '+tp.toFixed(1))}
     else el('text',{x:ml+lw/2,y:ly+26,'text-anchor':'middle'},svg,'typical plan: '+tp.toFixed(1)+' (below this range)');
     clear(quick);
     [['Best plan overall',function(){choose({stops:d.best.stops,laps:d.best.laps,tyres:d.best.tyres},d.best)}],
@@ -402,7 +413,7 @@ function heat(root){
     if(keep&&keep.r!==null&&keep.r<nO&&keep.c<nL)pick(keep.r,keep.c);else pick(best.r,best.c);
   }
   function mark(){if(!sel||!G.ring)return;
-    if(G.vs){if(sel.r===null||(sel.r===G.best.r&&sel.c===G.best.c))G.vs.setAttribute('visibility','hidden');else{G.vs.setAttribute('visibility','visible');G.vs.setAttribute('x',G.ml+sel.c*G.cw+G.cw/2);G.vs.setAttribute('y',G.mt+sel.r*G.rh+G.rh/2+4);G.vs.textContent=sel.m.points.toFixed(1)}}
+    if(G.vs){if(sel.r===null||G.top[sel.r+','+sel.c])G.vs.setAttribute('visibility','hidden');else{G.vs.setAttribute('visibility','visible');G.vs.setAttribute('style',ink(G.fills[sel.r+','+sel.c]));G.vs.setAttribute('x',G.ml+sel.c*G.cw+G.cw/2);G.vs.setAttribute('y',G.mt+sel.r*G.rh+G.rh/2+4);G.vs.textContent=sel.m.points.toFixed(1)}}
     if(sel.r===null){G.ring.setAttribute('width',0);G.ring.setAttribute('height',0)}else{G.ring.setAttribute('width',G.cw-2);G.ring.setAttribute('height',G.rh-2);G.ring.setAttribute('x',G.ml+sel.c*G.cw+1);G.ring.setAttribute('y',G.mt+sel.r*G.rh+1)}}
   function info(){
     var d=S.drivers[di],m=sel.m,t=d.typical,diff=m.points-t.points;
