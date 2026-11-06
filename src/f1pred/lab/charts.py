@@ -157,7 +157,10 @@ CSS = """
 .tip .t{display:block;color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px}
 .tip .r{display:flex;justify-content:space-between;gap:16px;color:var(--t)}
 .tip .r b{color:var(--text);font-variant-numeric:tabular-nums}
-.tip .u{display:block;color:var(--muted);font-weight:400}
+.tip .u{display:block;color:var(--muted);font-weight:400;font-size:12px;line-height:16px;margin:0 0 4px}
+.fan-wrap .tip .r{display:grid;grid-template-columns:3.2em 2.6em auto;gap:12px}
+.fan-wrap .tip .r b{text-align:right}
+.tip .rg{color:var(--muted);font-weight:400;font-variant-numeric:tabular-nums}
 .side{list-style:none;margin:0;padding:0}
 .side button{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;width:100%;background:none;border:0;border-top:1px solid var(--rule);
 color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;font:600 14px/18px var(--body)}
@@ -171,14 +174,7 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .side .sw.dash{border-top-style:dashed}
 .side .p{font-variant-numeric:tabular-nums;font-weight:700}
 .side small{display:block;color:var(--muted);font-weight:400;font-size:12px}
-.readout{display:grid;grid-template-columns:repeat(2,1fr);gap:0 32px;margin:16px 0 0;font:600 14px/20px var(--body)}
-@media(min-width:735px){.readout{grid-template-columns:repeat(3,1fr)}}
-.readout>div:not(.t){display:grid;grid-template-columns:3.2em 3em 1fr;gap:8px;align-items:baseline;border-top:1px solid var(--rule);padding:6px 0}
-.readout>div:not(.t)>b,.readout>div:not(.t)>span:last-child{text-align:right}
-.readout .nm{color:var(--t);font-weight:700}
-.readout span{color:var(--muted);font-weight:400}
-.readout b{font-variant-numeric:tabular-nums}
-.readout .t{grid-column:1/-1;color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .pick{display:flex;align-items:center;gap:12px;margin:0 0 16px;font:600 14px/20px var(--body);color:var(--muted)}
 .pick select{background:var(--surface);color:var(--text);border:1px solid var(--rule);font:600 14px/20px var(--body);padding:10px 12px;min-height:44px;border-radius:0}
 .hint{font:400 14px/20px var(--body);color:var(--muted);margin:8px 0 0;max-width:54ch}
@@ -245,12 +241,13 @@ function fan(root){
   var wrap=h('div',{'class':'fan-wrap'});root.appendChild(wrap);
   var left=h('div',{'class':'rel'});wrap.appendChild(left);
   var tip=h('div',{'class':'tip'});left.appendChild(tip);
+  document.addEventListener('pointerdown',function(e){if(!left.contains(e.target))tip.style.display='none'});
   function size(){var w=Math.round(left.getBoundingClientRect().width)||900;W=Math.max(300,Math.min(w,900));narrow=W<520;mr=narrow?60:110;ml=narrow?38:46;H=narrow?300:Math.round(W*0.56);pw=W-ml-mr;ph=H-mt-mb}
   var svg=el('svg',{viewBox:'0 0 '+W+' '+H,'class':'fan-svg',role:'img',tabindex:'0',
     'aria-label':'Points after each remaining race, with a 90 percent band. Use the left and right arrow keys to move between races.'},left);
   left.appendChild(h('p',{'class':'hint'},'Hover the chart or use the arrow keys to read each race. Click a name to show or hide it.'));
   var side=h('ul',{'class':'side'});wrap.appendChild(side);
-  var out=h('div',{'class':'readout','aria-live':'polite'});root.appendChild(out);
+  var out=h('div',{'class':'sr','aria-live':'polite'});root.appendChild(out);
   var clip=null;
   function rows(){return C[st.mode]}
   function isOn(r,i){var on=st.off[st.mode+r.key];return on===undefined?(i<6||st.all):on}
@@ -285,17 +282,17 @@ function fan(root){
       el('text',{x:ml+pw+22,y:e.y+4,'class':'endlab '+cl},labs,(e.r.name.length>9?e.r.name.slice(0,9):e.r.name)+(narrow?'':' '+Math.round(e.r.path.mean[R-1])))});
     var cross=el('line',{x1:0,x2:0,y1:mt,y2:mt+ph,'class':'cross'},svg);
     var hit=el('rect',{x:ml,y:mt,width:pw,height:ph,'class':'hit'},svg);
-    function at(i,ui){st.idx=Math.max(0,Math.min(R-1,i));cross.setAttribute('x1',X(st.idx));cross.setAttribute('x2',X(st.idx));read();if(ui)showTip(S,X(st.idx));else tip.style.display='none'}
+    function at(i,ui){st.idx=Math.max(0,Math.min(R-1,i));cross.setAttribute('x1',X(st.idx));cross.setAttribute('x2',X(st.idx));if(!ui||st.lastRead!==st.idx){read();st.lastRead=st.idx}if(ui)showTip(S,X(st.idx));else tip.style.display='none'}
     function showTip(S,x){
-      var k=svg.getBoundingClientRect().width/W,i=st.idx,a='<span class="t">After '+(i?C.labels[i]:'round '+C.after)+'</span>';
-      S.slice().sort(function(p,q){return q.path.mean[i]-p.path.mean[i]}).forEach(function(r){a+='<span class="r c-'+r.key+'"><span>'+r.name+'</span><b>'+Math.round(r.path.mean[i])+'</b></span>'});
+      var k=svg.getBoundingClientRect().width/W,i=st.idx,a='<span class="t">After '+(i?C.labels[i]:'round '+C.after)+'</span><span class="u">Average and 90% range</span>';
+      S.slice().sort(function(p,q){return q.path.mean[i]-p.path.mean[i]}).forEach(function(r){a+='<span class="r c-'+r.key+'"><span>'+r.name+'</span><b>'+Math.round(r.path.mean[i])+'</b><span class="rg">'+Math.round(r.path.low[i])+' to '+Math.round(r.path.high[i])+'</span></span>'});
       tip.innerHTML=a;tip.style.display='block';
       var w=tip.offsetWidth,px=x*k,lx=px+14;if(lx+w>left.clientWidth)lx=px-w-14;
       tip.style.left=Math.max(0,lx)+'px';tip.style.top=(mt*k+6)+'px';
     }
     hit.addEventListener('pointermove',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)),true)});
     hit.addEventListener('pointerdown',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)),true)});
-    hit.addEventListener('pointerleave',function(){if(document.activeElement!==svg)tip.style.display='none'});
+    hit.addEventListener('pointerleave',function(e){if(e.pointerType!=='touch'&&document.activeElement!==svg)tip.style.display='none'});
     svg.onblur=function(){tip.style.display='none'};
     svg.onkeydown=function(e){if(e.key=='ArrowLeft'){at(st.idx-1,true);e.preventDefault()}else if(e.key=='ArrowRight'){at(st.idx+1,true);e.preventDefault()}};
     at(st.idx);
@@ -306,7 +303,7 @@ function fan(root){
       if(!st.all&&i>=6)return;
       var on=isOn(r,i);
       var li=h('li');var b=h('button',{type:'button','aria-pressed':on?'true':'false','class':'c-'+r.key+(r.dash?' alt':''),title:'Show or hide '+r.name});
-      b.innerHTML='<span class="sw'+(r.dash?' dash':'')+'"></span><span><span class="nm">'+r.name+'</span><small>'+(on?'':'hidden, ')+Math.round(r.now)+' now, '+Math.round(r.expected)+' expected</small></span><span class="p">'+((i<3||r.p>=0.005)?pc(r.p):'')+'</span>';
+      b.innerHTML='<span class="sw'+(r.dash?' dash':'')+'"></span><span><span class="nm">'+r.name+'</span><small>'+(on?'':'hidden, ')+Math.round(r.now)+' now, '+Math.round(r.expected)+' expected</small></span><span class="p">'+(C.decided[st.mode]?'':pc(r.p))+'</span>';
       b.onclick=function(){st.off[st.mode+r.key]=!on;draw()};
       li.appendChild(b);side.appendChild(li);
     });

@@ -67,7 +67,7 @@ def _champ_tables(ch):
                        f'<td class="num">{r["low"]:.0f} to {r["high"]:.0f}</td><td class="num">{_chance(r["p_title"])}</td></tr>' for r in rows[:n])
         cap = f'After round {ch["after_round"]} of {ch["year"]}, {ch["races_left"]} races left, {ch["simulations"]:,} simulated seasons'
         return _table(cap, (head, "Points now", "Expected final", "90% range", "Title chance"), body)
-    return table(ch["drivers"], "Driver", 8) + table(ch["constructors"], "Team", 5)
+    return table(ch["drivers"], "Driver", 10) + table(ch["constructors"], "Team", 6)
 
 
 def _bars(rows):
