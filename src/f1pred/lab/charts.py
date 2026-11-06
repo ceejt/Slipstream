@@ -95,6 +95,9 @@ CSS = """
 .lab svg .band{fill:var(--c);opacity:.16}
 .lab svg .line{fill:none;stroke:var(--c);stroke-width:2.5;stroke-linejoin:round}
 .lab svg .dot{fill:var(--c)}
+.lab svg .minor .line{stroke-width:1.5;opacity:.75}
+.lab svg .minor .band{opacity:.07}
+.lab svg .minor .dot{opacity:.75}
 .lab svg .endlab{fill:var(--c);font-weight:700}
 .lab svg .cross{stroke:var(--text);stroke-width:1;opacity:.5}
 .lab svg .hit{fill:transparent;cursor:crosshair}
@@ -163,7 +166,7 @@ function fan(root){
   var W=900,H=470,ml=46,mr=110,mt=16,mb=36,pw=W-ml-mr,ph=H-mt-mb,narrow=false;
   var seg=h('div',{'class':'seg',role:'group','aria-label':'Show'});
   var bd=h('button',{type:'button','aria-pressed':'true'},'Drivers'),bc=h('button',{type:'button','aria-pressed':'false'},'Constructors');
-  var rep=h('button',{type:'button','class':'chip'},'Replay');
+  var rep=h('button',{type:'button','class':'chip'},'Replay animation');
   seg.appendChild(bd);seg.appendChild(bc);root.appendChild(seg);root.appendChild(rep);
   var wrap=h('div',{'class':'fan-wrap'});root.appendChild(wrap);
   var left=h('div');wrap.appendChild(left);
@@ -175,7 +178,8 @@ function fan(root){
   var out=h('div',{'class':'readout','aria-live':'polite'});root.appendChild(out);
   var clip=null;
   function rows(){return C[st.mode]}
-  function shown(){var r=rows(),k=0,s=[];for(var i=0;i<r.length;i++){var on=st.off[st.mode+r[i].key];if(on===undefined)on=i<6;if(on)s.push(r[i])}return s}
+  function isOn(r,i){var on=st.off[st.mode+r.key];return on===undefined?(i<6||st.all):on}
+  function shown(){var r=rows(),s=[];for(var i=0;i<r.length;i++)if(isOn(r[i],i))s.push(r[i]);return s}
   function draw(){
     size();svg.setAttribute('viewBox','0 0 '+W+' '+H);clear(svg);var S=shown(),R=C.labels.length;
     var lo=1e9,hi=-1e9;S.forEach(function(r){r.path.low.forEach(function(v){lo=Math.min(lo,v)});r.path.high.forEach(function(v){hi=Math.max(hi,v)})});
@@ -189,7 +193,7 @@ function fan(root){
     var g=el('g',{'clip-path':'url(#fanclip)'},svg);
     var ends=[];
     S.forEach(function(r){
-      var gs=el('g',{'class':'c-'+r.key},g),p=r.path,d='';
+      var gs=el('g',{'class':'c-'+r.key+(rows().indexOf(r)>=6?' minor':'')},g),p=r.path,d='';
       for(var i=0;i<R;i++)d+=(i?'L':'M')+X(i)+','+Y(p.high[i]);
       for(var i=R-1;i>=0;i--)d+='L'+X(i)+','+Y(p.low[i]);
       el('path',{d:d+'Z','class':'band'},gs);
@@ -214,13 +218,13 @@ function fan(root){
     var all=rows();
     all.forEach(function(r,i){
       if(!st.all&&i>=6)return;
-      var on=st.off[st.mode+r.key];if(on===undefined)on=i<6;
+      var on=isOn(r,i);
       var li=h('li');var b=h('button',{type:'button','aria-pressed':on?'true':'false','class':'c-'+r.key,title:'Show or hide '+r.name});
       b.innerHTML='<span class="sw'+(r.dash?' dash':'')+'"></span><span><span class="nm">'+r.name+'</span><small>'+(on?'':'hidden, ')+Math.round(r.now)+' now, '+Math.round(r.expected)+' expected</small></span><span class="p">'+((i<3||r.p>=0.005)?pc(r.p):'')+'</span>';
       b.onclick=function(){st.off[st.mode+r.key]=!on;draw()};
       li.appendChild(b);side.appendChild(li);
     });
-    if(all.length>6){var li=h('li'),m=h('button',{type:'button','class':'more','aria-expanded':st.all?'true':'false'},st.all?'Show fewer':'Show all '+all.length);m.onclick=function(){st.all=!st.all;draw()};li.appendChild(m);side.appendChild(li)}
+    if(all.length>6){var li=h('li'),m=h('button',{type:'button','class':'more','aria-expanded':st.all?'true':'false'},st.all?'Show the top 6 only':'Show all '+all.length+' drivers');m.onclick=function(){st.all=!st.all;all.forEach(function(r,i){if(i>=6)delete st.off[st.mode+r.key]});draw()};li.appendChild(m);side.appendChild(li)}
   }
   function read(){
     var S=shown(),i=st.idx,a='<div class="t">Points after '+(i?C.labels[i]:'round '+C.after)+(i?'':' (now)')+', average and 90% range</div>';

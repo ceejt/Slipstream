@@ -226,6 +226,9 @@ font:600 14px/24px var(--body);transition:background-color .15s cubic-bezier(.4,
 .lab svg .band{fill:var(--c);opacity:.16}
 .lab svg .line{fill:none;stroke:var(--c);stroke-width:2.5;stroke-linejoin:round}
 .lab svg .dot{fill:var(--c)}
+.lab svg .minor .line{stroke-width:1.5;opacity:.75}
+.lab svg .minor .band{opacity:.07}
+.lab svg .minor .dot{opacity:.75}
 .lab svg .endlab{fill:var(--c);font-weight:700}
 .lab svg .cross{stroke:var(--text);stroke-width:1;opacity:.5}
 .lab svg .hit{fill:transparent;cursor:crosshair}
@@ -310,7 +313,7 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 <li>Not modelled: rain, tyre warm-up and sudden tyre drop-off, damage, penalties during the race, team orders and the effect of fuel on tyre wear.</li>
 </ul>
 <h3>Next</h3>
-<ul class="soon-list"><li><b>Race replay.</b> A real race lap by lap against the simulated one, then an undercut explorer and validation charts. Later: a live track map, a fantasy score and a race engineer game.</li></ul>
+<ul class="soon-list"><li><b>Real race replay.</b> A real race lap by lap against the simulated one, then an undercut explorer and validation charts.</li></ul>
 </section>
 <p class="back"><a href="../index.html">Back to the podium predictions</a></p>
 <footer class="made"><span>Made by <a href="https://ceejt-portfolio.vercel.app/" target="_blank" rel="noopener noreferrer">ceejt</a></span><a class="gh" href="https://github.com/ceejt/Slipstream" target="_blank" rel="noopener noreferrer" aria-label="Slipstream on GitHub" title="Slipstream on GitHub"><svg viewBox="0 0 16 16" width="24" height="24" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></footer>
@@ -332,7 +335,7 @@ function fan(root){
   var W=900,H=470,ml=46,mr=110,mt=16,mb=36,pw=W-ml-mr,ph=H-mt-mb,narrow=false;
   var seg=h('div',{'class':'seg',role:'group','aria-label':'Show'});
   var bd=h('button',{type:'button','aria-pressed':'true'},'Drivers'),bc=h('button',{type:'button','aria-pressed':'false'},'Constructors');
-  var rep=h('button',{type:'button','class':'chip'},'Replay');
+  var rep=h('button',{type:'button','class':'chip'},'Replay animation');
   seg.appendChild(bd);seg.appendChild(bc);root.appendChild(seg);root.appendChild(rep);
   var wrap=h('div',{'class':'fan-wrap'});root.appendChild(wrap);
   var left=h('div');wrap.appendChild(left);
@@ -344,7 +347,8 @@ function fan(root){
   var out=h('div',{'class':'readout','aria-live':'polite'});root.appendChild(out);
   var clip=null;
   function rows(){return C[st.mode]}
-  function shown(){var r=rows(),k=0,s=[];for(var i=0;i<r.length;i++){var on=st.off[st.mode+r[i].key];if(on===undefined)on=i<6;if(on)s.push(r[i])}return s}
+  function isOn(r,i){var on=st.off[st.mode+r.key];return on===undefined?(i<6||st.all):on}
+  function shown(){var r=rows(),s=[];for(var i=0;i<r.length;i++)if(isOn(r[i],i))s.push(r[i]);return s}
   function draw(){
     size();svg.setAttribute('viewBox','0 0 '+W+' '+H);clear(svg);var S=shown(),R=C.labels.length;
     var lo=1e9,hi=-1e9;S.forEach(function(r){r.path.low.forEach(function(v){lo=Math.min(lo,v)});r.path.high.forEach(function(v){hi=Math.max(hi,v)})});
@@ -358,7 +362,7 @@ function fan(root){
     var g=el('g',{'clip-path':'url(#fanclip)'},svg);
     var ends=[];
     S.forEach(function(r){
-      var gs=el('g',{'class':'c-'+r.key},g),p=r.path,d='';
+      var gs=el('g',{'class':'c-'+r.key+(rows().indexOf(r)>=6?' minor':'')},g),p=r.path,d='';
       for(var i=0;i<R;i++)d+=(i?'L':'M')+X(i)+','+Y(p.high[i]);
       for(var i=R-1;i>=0;i--)d+='L'+X(i)+','+Y(p.low[i]);
       el('path',{d:d+'Z','class':'band'},gs);
@@ -383,13 +387,13 @@ function fan(root){
     var all=rows();
     all.forEach(function(r,i){
       if(!st.all&&i>=6)return;
-      var on=st.off[st.mode+r.key];if(on===undefined)on=i<6;
+      var on=isOn(r,i);
       var li=h('li');var b=h('button',{type:'button','aria-pressed':on?'true':'false','class':'c-'+r.key,title:'Show or hide '+r.name});
       b.innerHTML='<span class="sw'+(r.dash?' dash':'')+'"></span><span><span class="nm">'+r.name+'</span><small>'+(on?'':'hidden, ')+Math.round(r.now)+' now, '+Math.round(r.expected)+' expected</small></span><span class="p">'+((i<3||r.p>=0.005)?pc(r.p):'')+'</span>';
       b.onclick=function(){st.off[st.mode+r.key]=!on;draw()};
       li.appendChild(b);side.appendChild(li);
     });
-    if(all.length>6){var li=h('li'),m=h('button',{type:'button','class':'more','aria-expanded':st.all?'true':'false'},st.all?'Show fewer':'Show all '+all.length);m.onclick=function(){st.all=!st.all;draw()};li.appendChild(m);side.appendChild(li)}
+    if(all.length>6){var li=h('li'),m=h('button',{type:'button','class':'more','aria-expanded':st.all?'true':'false'},st.all?'Show the top 6 only':'Show all '+all.length+' drivers');m.onclick=function(){st.all=!st.all;all.forEach(function(r,i){if(i>=6)delete st.off[st.mode+r.key]});draw()};li.appendChild(m);side.appendChild(li)}
   }
   function read(){
     var S=shown(),i=st.idx,a='<div class="t">Points after '+(i?C.labels[i]:'round '+C.after)+(i?'':' (now)')+', average and 90% range</div>';

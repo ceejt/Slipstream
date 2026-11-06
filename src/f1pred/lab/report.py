@@ -223,7 +223,7 @@ def render(ev, ch=None, bt=None, st=None, chk=None):
 <li>Not modelled: rain, tyre warm-up and sudden tyre drop-off, damage, penalties during the race, team orders and the effect of fuel on tyre wear.</li>
 </ul>
 <h3>Next</h3>
-<ul class="soon-list"><li><b>Race replay.</b> A real race lap by lap against the simulated one, then an undercut explorer and validation charts. Later: a live track map, a fantasy score and a race engineer game.</li></ul>
+<ul class="soon-list"><li><b>Real race replay.</b> A real race lap by lap against the simulated one, then an undercut explorer and validation charts.</li></ul>
 </section>
 <p class="back"><a href="../index.html">Back to the podium predictions</a></p>
 {CREDIT}
