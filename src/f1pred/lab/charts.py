@@ -102,6 +102,12 @@ CSS = """
 .lab svg .cross{stroke:var(--text);stroke-width:1;opacity:.5}
 .lab svg .hit{fill:transparent;cursor:crosshair}
 .fan-svg:focus-visible,.heat-svg:focus-visible{outline:2px solid var(--text);outline-offset:4px}
+.rel{position:relative}
+.tip{position:absolute;z-index:3;pointer-events:none;background:var(--surface-2);border:1px solid var(--rule);padding:8px 12px;font:600 14px/20px var(--body);color:var(--text);white-space:nowrap;display:none}
+.tip .t{display:block;color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px}
+.tip .r{display:flex;justify-content:space-between;gap:16px;color:var(--c)}
+.tip .r b{color:var(--text);font-variant-numeric:tabular-nums}
+.tip .u{display:block;color:var(--muted);font-weight:400}
 .side{list-style:none;margin:0;padding:0}
 .side button{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;width:100%;background:none;border:0;border-top:1px solid var(--rule);
 color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;font:600 14px/18px var(--body)}
@@ -169,7 +175,8 @@ function fan(root){
   var rep=h('button',{type:'button','class':'chip'},'Replay animation');
   seg.appendChild(bd);seg.appendChild(bc);root.appendChild(seg);root.appendChild(rep);
   var wrap=h('div',{'class':'fan-wrap'});root.appendChild(wrap);
-  var left=h('div');wrap.appendChild(left);
+  var left=h('div',{'class':'rel'});wrap.appendChild(left);
+  var tip=h('div',{'class':'tip'});left.appendChild(tip);
   function size(){var w=Math.round(left.getBoundingClientRect().width)||900;W=Math.max(300,Math.min(w,900));narrow=W<520;mr=narrow?60:110;ml=narrow?38:46;H=narrow?300:Math.round(W*0.56);pw=W-ml-mr;ph=H-mt-mb}
   var svg=el('svg',{viewBox:'0 0 '+W+' '+H,'class':'fan-svg',role:'img',tabindex:'0',
     'aria-label':'Points after each remaining race, with a 90 percent band. Use the left and right arrow keys to move between races.'},left);
@@ -208,10 +215,19 @@ function fan(root){
     ends.forEach(function(e){if(Math.abs(e.y-e.y0)>2)el('line',{x1:ml+pw+2,y1:e.y0,x2:ml+pw+8,y2:e.y,'class':'lead-line c-'+e.r.key},labs);el('text',{x:ml+pw+10,y:e.y+4,'class':'endlab c-'+e.r.key},labs,(e.r.name.length>9?e.r.name.slice(0,9):e.r.name)+(narrow?'':' '+Math.round(e.r.path.mean[R-1])))});
     var cross=el('line',{x1:0,x2:0,y1:mt,y2:mt+ph,'class':'cross'},svg);
     var hit=el('rect',{x:ml,y:mt,width:pw,height:ph,'class':'hit'},svg);
-    function at(i){st.idx=Math.max(0,Math.min(R-1,i));cross.setAttribute('x1',X(st.idx));cross.setAttribute('x2',X(st.idx));read()}
-    hit.addEventListener('pointermove',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)))});
-    hit.addEventListener('pointerdown',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)))});
-    svg.onkeydown=function(e){if(e.key=='ArrowLeft'){at(st.idx-1);e.preventDefault()}else if(e.key=='ArrowRight'){at(st.idx+1);e.preventDefault()}};
+    function at(i,ui){st.idx=Math.max(0,Math.min(R-1,i));cross.setAttribute('x1',X(st.idx));cross.setAttribute('x2',X(st.idx));read();if(ui)showTip(S,X(st.idx));else tip.style.display='none'}
+    function showTip(S,x){
+      var k=svg.getBoundingClientRect().width/W,i=st.idx,a='<span class="t">After '+(i?C.labels[i]:'round '+C.after)+'</span>';
+      S.slice().sort(function(p,q){return q.path.mean[i]-p.path.mean[i]}).forEach(function(r){a+='<span class="r c-'+r.key+'"><span>'+r.name+'</span><b>'+Math.round(r.path.mean[i])+'</b></span>'});
+      tip.innerHTML=a;tip.style.display='block';
+      var w=tip.offsetWidth,px=x*k,lx=px+14;if(lx+w>left.clientWidth)lx=px-w-14;
+      tip.style.left=Math.max(0,lx)+'px';tip.style.top=(mt*k+6)+'px';
+    }
+    hit.addEventListener('pointermove',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)),true)});
+    hit.addEventListener('pointerdown',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)),true)});
+    hit.addEventListener('pointerleave',function(){if(document.activeElement!==svg)tip.style.display='none'});
+    svg.onblur=function(){tip.style.display='none'};
+    svg.onkeydown=function(e){if(e.key=='ArrowLeft'){at(st.idx-1,true);e.preventDefault()}else if(e.key=='ArrowRight'){at(st.idx+1,true);e.preventDefault()}};
     at(st.idx);
     // side list
     clear(side);
@@ -280,7 +296,8 @@ function heat(root){
   var S=D.st;if(!S)return;
   var di=0,sel=null,hv=null;
   var tabs=h('label',{'class':'pick'},'Driver '),pk=h('select',{});tabs.appendChild(pk);root.appendChild(tabs);
-  var box=h('div',{'class':'panel-lab'});root.appendChild(box);
+  var box=h('div',{'class':'panel-lab rel'});root.appendChild(box);
+  var tip=h('div',{'class':'tip'});box.appendChild(tip);
   var quick=h('div');root.appendChild(quick);
   var detail=h('div',{'class':'detail','aria-live':'polite'});root.appendChild(detail);
   var svg=el('svg',{'class':'heat-svg',role:'application',tabindex:'0','aria-label':'Expected points for each one stop plan. Use the arrow keys to move between plans, or B for the best plan.'});
@@ -290,7 +307,14 @@ function heat(root){
   box.appendChild(h('p',{'class':'hint'},'Solid outline: the plan you are looking at. Dashed outline: the best plan for this driver. Columns are the lap of the stop. Move over the squares or use the arrow keys; press B to jump to the best plan.'));
   var G={};
   function cells(){var d=S.drivers[di],H=d.heat,v=[];H.points.forEach(function(r){r.forEach(function(x){v.push(x)})});return {min:Math.min.apply(null,v),max:Math.max.apply(null,v)}}
-  function pick(r,c){var d=S.drivers[di],H=d.heat;sel={r:r,c:c,plan:{stops:1,laps:[H.laps[c]],tyres:H.orders[r]},m:{points:H.points[r][c],podium:H.podium[r][c],win:H.win[r][c],dist:H.dist[r][c]}};mark();info()}
+  function pick(r,c,ui){var d=S.drivers[di],H=d.heat;sel={r:r,c:c,plan:{stops:1,laps:[H.laps[c]],tyres:H.orders[r]},m:{points:H.points[r][c],podium:H.podium[r][c],win:H.win[r][c],dist:H.dist[r][c]}};mark();info();if(ui)cellTip(r,c);else tip.style.display='none'}
+  function cellTip(r,c){
+    var d=S.drivers[di],H=d.heat,m=sel.m,b=svg.getBoundingClientRect(),bb=box.getBoundingClientRect(),k=b.width/G.W;
+    tip.innerHTML='<span class="t">'+cap(H.orders[r][0])+' then '+cap(H.orders[r][1])+', stop on lap '+H.laps[c]+'</span><span class="r"><span>Expected points</span><b>'+m.points.toFixed(1)+'</b></span><span class="r"><span>Podium</span><b>'+Math.round(m.podium*100)+'%</b></span><span class="r"><span>Win</span><b>'+Math.round(m.win*100)+'%</b></span>';
+    tip.style.display='block';var w=tip.offsetWidth,hh=tip.offsetHeight,cx=b.left-bb.left+(G.ml+c*G.cw+G.cw/2)*k,cy=b.top-bb.top+(G.mt+r*G.rh)*k;
+    var lx=Math.min(Math.max(4,cx-w/2),box.clientWidth-w-4),ty=cy-hh-8;if(ty<4)ty=cy+G.rh*k+8;
+    tip.style.left=lx+'px';tip.style.top=ty+'px';
+  }
   function choose(plan,m){sel={r:null,c:null,plan:plan,m:m};mark();info()}
   function draw(){
     var keep=sel;clear(svg);var d=S.drivers[di],H=d.heat,nL=H.laps.length,nO=H.orders.length;
@@ -338,13 +362,15 @@ function heat(root){
     b.appendChild(stints(S.laps,rows));
   }
   function loc(e){var b=svg.getBoundingClientRect(),x=(e.clientX-b.left)*G.W/b.width,y=(e.clientY-b.top)*(parseFloat(svg.viewBox.baseVal.height))/b.height,c=Math.floor((x-G.ml)/G.cw),r=Math.floor((y-G.mt)/G.rh);return(c>=0&&c<G.nL&&r>=0&&r<G.nO)?[r,c]:null}
-  svg.addEventListener('pointermove',function(e){if(e.pointerType=='touch')return;var l=loc(e);if(l&&(!sel||sel.r!==l[0]||sel.c!==l[1]))pick(l[0],l[1])});
-  svg.addEventListener('click',function(e){var l=loc(e);if(l)pick(l[0],l[1])});
+  svg.addEventListener('pointermove',function(e){if(e.pointerType=='touch')return;var l=loc(e);if(l&&(!sel||sel.r!==l[0]||sel.c!==l[1]))pick(l[0],l[1],true)});
+  svg.addEventListener('pointerleave',function(){if(document.activeElement!==svg)tip.style.display='none'});
+  svg.addEventListener('blur',function(){tip.style.display='none'});
+  svg.addEventListener('click',function(e){var l=loc(e);if(l)pick(l[0],l[1],true)});
   svg.addEventListener('keydown',function(e){
     var r=sel&&sel.r!==null?sel.r:G.best.r,c=sel&&sel.c!==null?sel.c:G.best.c,k=e.key;
-    if(k=='b'||k=='B'){e.preventDefault();pick(G.best.r,G.best.c);return}
+    if(k=='b'||k=='B'){e.preventDefault();pick(G.best.r,G.best.c,true);return}
     if(k=='ArrowLeft')c--;else if(k=='ArrowRight')c++;else if(k=='ArrowUp')r--;else if(k=='ArrowDown')r++;else return;
-    e.preventDefault();pick(Math.max(0,Math.min(G.nO-1,r)),Math.max(0,Math.min(G.nL-1,c)));
+    e.preventDefault();pick(Math.max(0,Math.min(G.nO-1,r)),Math.max(0,Math.min(G.nL-1,c)),true);
   });
   draw();
   var rt=null;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(draw,150)});
