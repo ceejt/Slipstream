@@ -21,6 +21,8 @@ LAB_CSS = """
 .soon-list{list-style:none;padding:0;margin:0}
 .soon-list li{padding:12px 0;border-top:1px solid var(--rule)}
 .soon-list b{font-weight:700}
+.back{margin:0 0 32px}
+.back a{display:inline-block;padding:12px 0;min-height:44px;color:var(--text);font:600 14px/20px var(--body)}
 """
 
 
@@ -42,7 +44,7 @@ def _verdict(ev):
     return (f'<p><b>As a podium forecaster, the simulator is {rel(vs_blend, "the podium model")} and '
             f'{rel(vs_grid, "a formula on grid position alone")}.</b> '
             f'Brier score difference to the podium model: {fmt(vs_blend)}. To the grid formula: {fmt(vs_grid)}. '
-            'Negative means the simulator is better. Intervals come from resampling whole races, on the seasons it was not tuned on.</p>')
+            'The Brier score is the average squared miss of the chances, and negative means the simulator is better. Intervals come from resampling whole races, on the seasons it was not tuned on.</p>')
 
 
 def _chance(p):
@@ -94,23 +96,34 @@ def _strategy_tables(st):
     return tables
 
 
-def _strategy_notes(st, chk):
+def _strategy_answer(st):
+    """The answer in one sentence, before the chart that lets the reader look further."""
+    firsts = {(tuple(d["best"][0]["tyres"]), d["best"][0]["stops"]) for d in st["drivers"]}
+    if len(firsts) != 1:
+        return '<p class="answer"><b>The best plan differs by driver.</b> Choose a driver below.</p>'
+    (tyres, stops), laps = next(iter(firsts)), [d["best"][0]["laps"][0] for d in st["drivers"]]
+    return (f'<p class="answer"><b>{stops} stop, {" then ".join(t.title() for t in tyres)}, first stop around lap {round(sum(laps) / len(laps))}.</b> '
+            f'It is the best plan for all {len(st["drivers"])} drivers.</p>')
+
+
+def _strategy_caveat(chk):
+    if not chk:
+        return ""
+    return (f'<p class="caveat"><b>How far to trust this:</b> across {chk["drivers"]} drivers in {chk["races"]} past races, real gains were about '
+            f'{chk["slope"] * 100:.0f}% of the simulated ones (95% interval {chk["low"] * 100:.0f}% to {chk["high"] * 100:.0f}%). '
+            'Read the ranking of plans, not the size of the gain.</p>')
+
+
+def _strategy_notes(st):
     pct = lambda v: f"{v * 100:.0f}%"
     u = st["undercut"]["1.0"]
-    out = ""
-    firsts = {(tuple(d["best"][0]["tyres"]), d["best"][0]["stops"]) for d in st["drivers"]}
-    if len(firsts) == 1:
-        (tyres, stops), laps = next(iter(firsts)), [d["best"][0]["laps"][0] for d in st["drivers"]]
-        out += (f'<p class="note"><b>Same answer for all {len(st["drivers"])} drivers:</b> {stops} stop, {" then ".join(t.title() for t in tyres)}, first stop around lap {round(sum(laps) / len(laps))}. '
-                'The fitted wear is nearly the same for the soft and the medium, so the faster soft tyre wins as the start. Real soft tyres fall off more sharply than straight-line wear can show, '
-                'so the optimiser probably favours softs and long stints more than it should.</p>')
-    if chk:
-        out += (f'<p class="note"><b>Checked on {chk["drivers"]} drivers in {chk["races"]} past races:</b> the simulator\'s view of a plan moves with how far ahead the driver finished, '
-                f'but real gains were about {chk["slope"] * 100:.0f}% of the simulated ones (95% interval {chk["low"] * 100:.0f}% to {chk["high"] * 100:.0f}%). Read the ranking of plans, not the size of the gain.</p>')
-    out += (f'<p class="note"><b>Undercut and overcut.</b> Two cars level on pace, one second apart: stopping on the same lap gives the car behind {pct(u["0"])} to finish ahead; '
-            f'one lap earlier {pct(u["-1"])}, two laps earlier {pct(u["-2"])}, one lap later {pct(u["1"])}. An undercut helps and an overcut does not. The simulator has no tyre warm-up on the out-lap and no traffic on rejoining, '
-            'so it probably overstates the undercut and cannot show an overcut. The full table is under "Show as tables".</p>')
-    return out
+    return ('<ul class="notes">'
+            '<li><b>Why the soft tyre starts.</b> The fitted wear is nearly the same for the soft and the medium, so the faster soft tyre wins. '
+            'Real soft tyres fall off more sharply than straight-line wear shows, so the optimiser probably favours softs and long stints too much.</li>'
+            f'<li><b>Undercut and overcut.</b> Two cars level on pace, one second apart, stopping on the same lap: the car behind finishes ahead {pct(u["0"])} of the time. '
+            f'One lap earlier it is {pct(u["-1"])}, two laps earlier {pct(u["-2"])}, one lap later {pct(u["1"])}. '
+            'The simulator has no tyre warm-up or traffic on rejoining, so it probably overstates the undercut and cannot show an overcut. The full table is under "Show as tables".</li>'
+            '</ul>')
 
 
 def _tiles(ev, ch, st):
@@ -124,12 +137,17 @@ def _tiles(ev, ch, st):
         firsts = {(tuple(d["best"][0]["tyres"]), d["best"][0]["stops"]) for d in st["drivers"]}
         if len(firsts) == 1:
             (tyres, stops), = firsts
-            tiles.append((f'Best plan, {st["event"]}', f'{stops} stop', " then ".join(t.title() for t in tyres) + ", for the three fastest cars."))
+            lap = round(sum(d["best"][0]["laps"][0] for d in st["drivers"]) / len(st["drivers"]))
+            tiles.append((f'Best plan, {st["event"]}', f'{stops} stop',
+                          " then ".join(t.title() for t in tyres) + f", first stop near lap {lap}, for the {len(st['drivers'])} fastest cars."))
         else:
             tiles.append((f'Best plan, {st["event"]}', "Differs", "The best plan is not the same for each driver."))
     h = ev["holdout"]
-    tiles.append(("As a podium forecaster", f'{h["simulator"]["brier"]:.3f} vs {h["blend"]["brier"]:.3f}',
-                  f'Brier score of the simulator against the podium model over {h["simulator"]["races"]} races. Lower is better.'))
+    d = ev["brier_difference"]["simulator minus blend"]
+    word = "Better" if d["high"] < 0 else "Worse" if d["low"] > 0 else "No different"
+    tiles.append(("Simulator against the podium model", word,
+                  f'Brier score {h["simulator"]["brier"]:.3f} against {h["blend"]["brier"]:.3f} over {h["simulator"]["races"]} races. '
+                  'It is the average squared miss of the chances, so lower is better. <a href="#checks">See the check</a>.'))
     return '<div class="tiles">' + "".join(f'<div class="tile"><p class="k">{k}</p><p class="v">{v}</p><p class="c">{c}</p></div>' for k, v, c in tiles) + "</div>"
 
 
@@ -157,20 +175,24 @@ def render(ev, ch=None, bt=None, st=None, chk=None):
         f'<tr><td>Real stops and retirements, pace forecast</td><td class="num">{rp["spearman"]:.2f}</td><td class="num">{rp["mean_place_error"]:.1f}</td><td class="num">{pct(rp["winner_right"])}</td></tr>'))
     data, team_css = charts.build(ch, st)
     nav = [("championship", "Championship"), ("strategy", "Pit strategy"), ("checks", "Checks"), ("method", "How it works")]
-    decided = ""
+    status = ""
     if ch:
-        tags = [n for n, k in (("Drivers' title decided", "driver_title_clinched"), ("Constructors' title decided", "constructor_title_clinched")) if ch[k]]
-        decided = "".join(f'<span class="decided">{t}</span> ' for t in tags)
+        who = lambda n: f'<span class="tc c-{charts._key(n)}">{escape(n)}</span>'
+        done = [f'{who(ch[k][0]["name"])} has clinched the {t} title' for k, t in
+                (("drivers", "drivers'"), ("constructors", "constructors'")) if ch[f"{k[:-1]}_title_clinched"]]
+        if done:
+            status = f'<p class="status"><b>{" and ".join(done)}.</b> The points left are not enough for anyone else to catch up.</p>'
     champ = f"""<section class="sec" id="championship"><h2>Championship</h2>
-<p class="lead">Every remaining race of the season is simulated thousands of times and the points are added up. Lines are the average, shaded bands cover 90% of simulated seasons. Move over the chart, or use the arrow keys, to read each race. Click a name to show or hide it.</p>
-{decided}<div id="fan-root"></div>
+{status}<p class="lead">Every remaining race is simulated thousands of times and the points are added up. Lines are the average; shaded bands cover 90% of simulated seasons.</p>
+<div id="fan-root"></div>
 <p class="note">{_champ_check(bt)}</p>
 <details class="tables"><summary>Show as tables</summary>{_champ_tables(ch)}</details></section>""" if ch else ""
     when = "Qualifying has not been run, so each simulated race draws its own grid from the pace forecast. " if st and not st["grid_known"] else "The grid is the real qualifying order. "
     strat = f"""<section class="sec" id="strategy"><h2>Pit strategy</h2>
-<p class="lead">{escape(st["event"])}, {st["laps"]} laps, a pit stop costs {st["pit_loss_s"]} s. {when}Each square is a one-stop plan, played {st["simulations"]:,} times for the chosen driver while the rest of the field follows typical strategies. A stronger colour means more expected points. Move over the squares, or use the arrow keys.</p>
+{_strategy_answer(st)}{_strategy_caveat(chk)}
+<p class="lead">{escape(st["event"])}, {st["laps"]} laps, a pit stop costs {st["pit_loss_s"]} s. {when}Each square is a one-stop plan, played {st["simulations"]:,} times for the chosen driver while the rest of the field follows typical strategies. A stronger colour means more expected points.</p>
 <div id="heat-root"></div>
-{_strategy_notes(st, chk)}
+{_strategy_notes(st)}
 <details class="tables"><summary>Show as tables</summary>{_strategy_tables(st)}</details></section>""" if st else ""
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -203,6 +225,7 @@ def render(ev, ch=None, bt=None, st=None, chk=None):
 <h3>Next</h3>
 <ul class="soon-list"><li><b>Race replay.</b> A real race lap by lap against the simulated one, then an undercut explorer and validation charts. Later: a live track map, a fantasy score and a race engineer game.</li></ul>
 </section>
+<p class="back"><a href="../index.html">Back to the podium predictions</a></p>
 {CREDIT}
 </main><script type="application/json" id="lab-data">{data}</script><script>{charts.JS}</script></body></html>"""
 

@@ -138,3 +138,10 @@ def test_lab_page_works_with_and_without_the_forecasts():
     assert 'id="fan-root"' not in bare and 'id="checks"' in bare
     full = report.render(ev, _sample_forecast())
     assert 'id="fan-root"' in full and 'id="lab-data"' in full and 'aria-label="On this page"' in full
+    assert "Simulator against the podium model" in full and "No different" in full and 'href="#checks"' in full
+    assert 'class="status"' not in full
+    done = dict(_sample_forecast(), driver_title_clinched=True)
+    page = report.render(ev, done)
+    assert "AAA</span> has clinched the drivers' title" in page and "Drivers' title decided" not in page
+    worse = dict(ev, brier_difference={**ev["brier_difference"], "simulator minus blend": {"diff": 0.01, "low": 0.005, "high": 0.02}})
+    assert ">Worse<" in report.render(worse)
