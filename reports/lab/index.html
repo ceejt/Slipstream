@@ -241,6 +241,7 @@ font:600 14px/24px var(--body);transition:background-color .15s cubic-bezier(.4,
 .lab svg .axis{fill:var(--muted)}
 .lab .alt{--l:var(--l2)}
 .lab svg .band{fill:var(--l);opacity:.16}
+.lab svg.dense .band{opacity:.09}
 .lab svg .line{fill:none;stroke:var(--l);stroke-width:2.5;stroke-linejoin:round}
 .lab svg .dot{fill:var(--l)}
 .lab svg .minor .line{stroke-width:1.5;opacity:.75}
@@ -382,15 +383,19 @@ function fan(root){
   function size(){var w=Math.round(left.getBoundingClientRect().width)||900;W=Math.max(300,Math.min(w,900));narrow=W<520;mr=narrow?60:110;ml=narrow?38:46;H=narrow?300:Math.round(W*0.56);pw=W-ml-mr;ph=H-mt-mb}
   var svg=el('svg',{viewBox:'0 0 '+W+' '+H,'class':'fan-svg',role:'img',tabindex:'0',
     'aria-label':'Points after each remaining race, with a 90 percent band. Use the left and right arrow keys to move between races.'},left);
-  left.appendChild(h('p',{'class':'hint'},'Hover the chart or use the arrow keys to read each race. Click a name to show or hide it.'));
+  var hint=h('p',{'class':'hint'});left.appendChild(hint);
   var side=h('ul',{'class':'side'});wrap.appendChild(side);
   var out=h('div',{'class':'sr','aria-live':'polite'});root.appendChild(out);
   var clip=null;
   function rows(){return C[st.mode]}
-  function isOn(r,i){var on=st.off[st.mode+r.key];return on===undefined?(i<6||st.all):on}
+  function lead(){return C.decided[st.mode]?1:0}
+  function isOn(r,i){var on=st.off[st.mode+r.key];return on===undefined?((i<6&&i>=lead())||st.all):on}
   function shown(){var r=rows(),s=[];for(var i=0;i<r.length;i++)if(isOn(r[i],i))s.push(r[i]);return s}
   function draw(){
     size();svg.setAttribute('viewBox','0 0 '+W+' '+H);clear(svg);var S=shown(),R=C.labels.length;
+    svg.setAttribute('class','fan-svg'+(S.length>4?' dense':''));
+    var champ=rows()[0],hid=lead()&&st.off[st.mode+champ.key]===undefined&&!st.all;
+    hint.textContent=(hid?champ.name+' has clinched the title, so the chart shows the fight for second. Click '+champ.name+' in the list to add the line. ':'')+'Hover the chart or use the arrow keys to read each race. Click a name to show or hide it.';
     var lo=1e9,hi=-1e9;S.forEach(function(r){r.path.low.forEach(function(v){lo=Math.min(lo,v)});r.path.high.forEach(function(v){hi=Math.max(hi,v)})});
     if(!S.length){lo=0;hi=100}
     var step=[10,25,50,100,200].filter(function(s){return (hi-lo)/s<=6})[0]||200;
@@ -440,11 +445,11 @@ function fan(root){
       if(!st.all&&i>=6)return;
       var on=isOn(r,i);
       var li=h('li');var b=h('button',{type:'button','aria-pressed':on?'true':'false','class':'c-'+r.key+(r.dash?' alt':''),title:'Show or hide '+r.name});
-      b.innerHTML='<span class="sw'+(r.dash?' dash':'')+'"></span><span><span class="nm">'+r.name+'</span><small>'+(on?'':'hidden, ')+Math.round(r.now)+' now, '+Math.round(r.expected)+' expected</small></span><span class="p">'+(C.decided[st.mode]?'':pc(r.p))+'</span>';
+      b.innerHTML='<span class="sw'+(r.dash?' dash':'')+'"></span><span><span class="nm">'+r.name+'</span><small>'+(on?'':'hidden, ')+Math.round(r.now)+' now, '+Math.round(r.expected)+' expected</small></span><span class="p">'+(C.decided[st.mode]?(i==0?'Clinched':''):pc(r.p))+'</span>';
       b.onclick=function(){st.off[st.mode+r.key]=!on;draw()};
       li.appendChild(b);side.appendChild(li);
     });
-    if(all.length>6){var li=h('li'),m=h('button',{type:'button','class':'more','aria-expanded':st.all?'true':'false'},st.all?'Show the top 6 only':'Show all '+all.length+' drivers');m.onclick=function(){st.all=!st.all;all.forEach(function(r,i){if(i>=6)delete st.off[st.mode+r.key]});draw()};li.appendChild(m);side.appendChild(li)}
+    if(all.length>6){var li=h('li'),m=h('button',{type:'button','class':'more','aria-expanded':st.all?'true':'false'},st.all?'Show the default view':'Show all '+all.length+(st.mode=='drivers'?' drivers':' teams'));m.onclick=function(){st.all=!st.all;all.forEach(function(r,i){if(i>=6)delete st.off[st.mode+r.key]});draw()};li.appendChild(m);side.appendChild(li)}
   }
   function read(){
     var S=shown(),i=st.idx,a='<div class="t">Points after '+(i?C.labels[i]:'round '+C.after)+(i?'':' (now)')+', average and 90% range</div>';
