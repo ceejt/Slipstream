@@ -113,14 +113,16 @@ def _strategy_tables(st):
     return tables
 
 
-def _strategy_answer(st):
-    """The answer in one sentence, before the chart that lets the reader look further."""
+def _strategy_answer(st, chk=None):
+    """What the best plan is worth, in one sentence. Which plan it is stays in the tile at the top and in the chart below."""
     firsts = {(tuple(d["best"][0]["tyres"]), d["best"][0]["stops"]) for d in st["drivers"]}
     if len(firsts) != 1:
         return '<p class="answer"><b>The best plan differs by driver.</b> Choose a driver below.</p>'
-    (tyres, stops), laps = next(iter(firsts)), [d["best"][0]["laps"][0] for d in st["drivers"]]
-    return (f'<p class="answer"><b>{stops} stop, {" then ".join(t.title() for t in tyres)}, first stop around lap {round(sum(laps) / len(laps))}.</b> '
-            f'It is the best plan for all {len(st["drivers"])} drivers.</p>')
+    gains = [d["best"][0]["points"] - d["typical"]["points"] for d in st["drivers"]]
+    lo, hi = min(gains), max(gains)
+    size = f"{lo:.1f}" if f"{lo:.1f}" == f"{hi:.1f}" else f"{lo:.1f} to {hi:.1f}"
+    tail = " The size of that gain is the least certain part; see how far to trust it below the chart." if chk else ""
+    return f'<p class="answer"><b>The best plan adds {size} expected points over the typical plan.</b>{tail}</p>'
 
 
 def _strategy_caveat(chk):
@@ -142,7 +144,7 @@ def _strategy_notes(st):
             'Real soft tyres fall off more sharply than straight-line wear shows, so the optimiser probably favours softs and long stints too much.</li>'
             f'<li><b>Undercut and overcut.</b> Two cars level on pace, one second apart, stopping on the same lap: the car behind finishes ahead {pct(u["0"])} of the time. '
             f'One lap earlier it is {pct(u["-1"])}, two laps earlier {pct(u["-2"])}, one lap later {pct(u["1"])}. '
-            'The simulator has no tyre warm-up or traffic on rejoining, so it probably overstates the undercut and cannot show an overcut. The full table is under "Show as tables".</li>'
+            'The simulator has no tyre warm-up or traffic on rejoining, so it probably overstates the undercut and cannot show an overcut. The full table is under "For the data nerds".</li>'
             '</ul>')
 
 
@@ -206,15 +208,15 @@ def render(ev, ch=None, bt=None, st=None, chk=None):
 {status}<p class="lead">Every remaining race is simulated thousands of times and the points are added up. Lines are the average; shaded bands cover 90% of simulated seasons.</p>
 <div id="fan-root"></div>
 {_champ_check(bt)}
-<details class="tables"><summary>Show as tables</summary>{_champ_tables(ch)}</details></section>""" if ch else ""
+<details class="tables"><summary>For the data nerds</summary>{_champ_tables(ch)}</details></section>""" if ch else ""
     when = "Qualifying has not been run, so each simulated race draws its own grid from the pace forecast. " if st and not st["grid_known"] else "The grid is the real qualifying order. "
     strat = f"""<section class="sec" id="strategy"><h2>Pit strategy</h2>
-{_strategy_answer(st)}
+{_strategy_answer(st, chk)}
 <p class="lead">{escape(st["event"])}, {st["laps"]} laps, a pit stop costs {st["pit_loss_s"]} s. {when}Each square is a one-stop plan, played {st["simulations"]:,} times for the chosen driver while the rest of the field follows typical strategies. A stronger colour means more expected points.</p>
 <div id="heat-root"></div>
 {_strategy_caveat(chk)}
 {_strategy_notes(st)}
-<details class="tables"><summary>Show as tables</summary>{_strategy_tables(st)}</details></section>""" if st else ""
+<details class="tables"><summary>For the data nerds</summary>{_strategy_tables(st)}</details></section>""" if st else ""
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Slipstream Race lab</title>{FAVICON.replace('href="favicon', 'href="../favicon')}{FONT_LINK}{ANALYTICS}<style>{CSS}{LAB_CSS}{charts.CSS}{team_css}</style></head><body><main>
@@ -227,7 +229,7 @@ def render(ev, ch=None, bt=None, st=None, chk=None):
 <section class="sec" id="checks"><h2>Checks</h2>
 <p class="lead">Every result above comes with the test it was put through. The simulator was tested on past races it had not seen, from {ev["races_fitted"]} dry races since 2023 (wet races, {ev["wet_races_skipped"]}, are left out).</p>
 <div class="verdict">{_verdict(ev)}</div>
-<details class="tables"><summary>Show the tables</summary>
+<details class="tables"><summary>For the data nerds</summary>
 <div class="lab-grid">{comp}{other}</div>
 {mech}
 {compare}

@@ -465,6 +465,8 @@ function heat(root){
     a.appendChild(h('div',{'class':'dstats'},'Where the driver finishes, percent. The white line marks the typical plan.'));
     a.appendChild(dist(m.dist,t.dist));
     var rows=[{label:'Selected',plan:sel.plan},{label:'Typical',plan:d.typical_plan},{label:'Best overall',plan:{stops:d.best.stops,laps:d.best.laps,tyres:d.best.tyres}},{label:'Best two stop',plan:{stops:d.heat.best_two.stops,laps:d.heat.best_two.laps,tyres:d.heat.best_two.tyres}}];
+    var shown=planText(sel.plan),same=[];rows=rows.filter(function(r,i){if(i==0||planText(r.plan)!=shown)return true;same.push(r.label=='Best overall'?'best':r.label.toLowerCase());return false});
+    if(same.length)rows[0].label='Selected, '+same.join(', ');
     b.appendChild(h('div',{'class':'dtitle'},'Tyre stints, '+S.laps+' laps'));
     b.appendChild(h('div',{'class':'dstats'},'Letters are the tyre: S soft, M medium, H hard. Numbers are the stop laps.'));
     b.appendChild(stints(S.laps,rows));
