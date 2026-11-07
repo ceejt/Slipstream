@@ -450,9 +450,9 @@ function fan(root){
     function near(e){var b=svg.getBoundingClientRect(),y=(e.clientY-b.top)*H/b.height,bk=null,bd=1e9;S.forEach(function(r){var d=Math.abs(Y(r.path.mean[st.idx])-y);if(d<bd){bd=d;bk=r.key}});setFocus(bk)}
     hit.addEventListener('pointermove',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)),true);near(e)});
     hit.addEventListener('pointerdown',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)),true);near(e)});
-    hit.addEventListener('pointerleave',function(e){if(e.pointerType!=='touch'){setFocus(null);if(document.activeElement!==svg)tip.style.display='none'}});
+    hit.addEventListener('pointerleave',function(e){if(e.pointerType!=='touch'){setFocus(null);tip.style.display='none'}});
     svg.onblur=function(){tip.style.display='none'};
-    svg.onkeydown=function(e){if(e.key=='ArrowLeft'){at(st.idx-1,true);e.preventDefault()}else if(e.key=='ArrowRight'){at(st.idx+1,true);e.preventDefault()}};
+    svg.onkeydown=function(e){if(e.key=='ArrowLeft'){at(st.idx-1,true);e.preventDefault()}else if(e.key=='ArrowRight'){at(st.idx+1,true);e.preventDefault()}else if(e.key=='Escape')tip.style.display='none'};
     at(st.idx);
     // side list
     clear(side);
@@ -621,11 +621,12 @@ function heat(root){
   }
   function loc(e){var b=svg.getBoundingClientRect(),x=(e.clientX-b.left)*G.W/b.width,y=(e.clientY-b.top)*(parseFloat(svg.viewBox.baseVal.height))/b.height,c=Math.floor((x-G.ml)/G.cw),r=Math.floor((y-G.mt)/G.rh);return(c>=0&&c<G.nL&&r>=0&&r<G.nO)?[r,c]:null}
   svg.addEventListener('pointermove',function(e){if(e.pointerType=='touch')return;var l=loc(e);if(l&&(!sel||sel.r!==l[0]||sel.c!==l[1]))pick(l[0],l[1],true)});
-  svg.addEventListener('pointerleave',function(){if(document.activeElement!==svg)tip.style.display='none'});
+  svg.addEventListener('pointerleave',function(e){if(e.pointerType!=='touch')tip.style.display='none'});
   svg.addEventListener('blur',function(){tip.style.display='none'});
   svg.addEventListener('click',function(e){var l=loc(e);if(l)pick(l[0],l[1],true)});
   svg.addEventListener('keydown',function(e){
     var r=sel&&sel.r!==null?sel.r:G.best.r,c=sel&&sel.c!==null?sel.c:G.best.c,k=e.key;
+    if(k=='Escape'){tip.style.display='none';return}
     if(k=='b'||k=='B'){e.preventDefault();pick(G.best.r,G.best.c,true);return}
     if(k=='ArrowLeft')c--;else if(k=='ArrowRight')c++;else if(k=='ArrowUp')r--;else if(k=='ArrowDown')r++;else return;
     e.preventDefault();pick(Math.max(0,Math.min(G.nO-1,r)),Math.max(0,Math.min(G.nL-1,c)),true);
