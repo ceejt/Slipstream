@@ -410,7 +410,9 @@ function fan(root){
     lo=Math.floor((lo-5)/step)*step;hi=Math.ceil((hi+5)/step)*step;
     var X=function(i){return ml+pw*i/(R-1)},Y=function(v){return mt+ph*(1-(v-lo)/(hi-lo))};
     for(var v=lo;v<=hi;v+=step){el('line',{x1:ml,x2:ml+pw,y1:Y(v),y2:Y(v),'class':'grid'},svg);el('text',{x:ml-8,y:Y(v)+4,'text-anchor':'end'},svg,v)}
-    C.labels.forEach(function(l,i){el('text',{x:X(i),y:H-10,'text-anchor':i==0?'start':i==R-1?'end':'middle'},svg,l)});
+    var placed=[],order=[R-1,0];for(var i=R-2;i>0;i--)order.push(i);  // the last and first race always show; a middle one is skipped if it would touch another
+    order.forEach(function(i){var t=el('text',{x:X(i),y:H-10,'text-anchor':i==0?'start':i==R-1?'end':'middle'},svg,C.labels[i]),b=t.getBBox();
+      if(placed.some(function(p){return b.x<p.x+p.w+10&&b.x+b.width>p.x-10}))svg.removeChild(t);else placed.push({x:b.x,w:b.width})});
     var defs=el('defs',{},svg);clip=el('clipPath',{id:'fanclip'},defs);var cr=el('rect',{x:0,y:0,width:reduce||st.played?W:0,height:H},clip);
     var g=el('g',{'clip-path':'url(#fanclip)'},svg);
     var ends=[];
