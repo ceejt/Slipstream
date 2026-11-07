@@ -142,14 +142,16 @@ CSS = """
 .lab svg .grid{stroke:var(--rule);stroke-width:1}
 .lab svg .axis{fill:var(--muted)}
 .lab .alt{--l:var(--l2)}
-.lab svg .band{fill:var(--l);opacity:.16}
-.lab svg.dense .band{opacity:.09}
+.lab svg .band{fill:var(--l);opacity:.06}
 .lab svg .line{fill:none;stroke:var(--l);stroke-width:2.5;stroke-linejoin:round}
 .lab svg .dot{fill:var(--l)}
 .lab svg .minor .line{stroke-width:1.5;opacity:.75}
-.lab svg .minor .band{opacity:.07}
+.lab svg .minor .band{opacity:.03}
 .lab svg .minor .dot{opacity:.75}
 .lab svg .endlab{fill:var(--t);font-weight:700}
+.lab svg .fx .band{opacity:.24}
+.lab svg .fx .line{stroke-width:3.5}
+.lab svg .dim .line,.lab svg .dim .dot,.lab svg .endlab.dim,.lab svg .lead-line.dim{opacity:.3}
 .lab svg .cross{stroke:var(--text);stroke-width:1;opacity:.5}
 .lab svg .hit{fill:transparent;cursor:crosshair}
 .fan-svg:focus-visible,.heat-svg:focus-visible{outline:2px solid var(--text);outline-offset:4px}
@@ -241,7 +243,7 @@ function ease(t){return 1-Math.pow(1-t,3)}
 /* ---------- championship fan chart ---------- */
 function fan(root){
   var C=D.ch;if(!C)return;
-  var st={mode:'drivers',off:{},all:false,idx:C.labels.length-1,played:true};
+  var st={mode:'drivers',off:{},all:false,idx:C.labels.length-1,played:true,focus:null};
   var W=900,H=470,ml=46,mr=110,mt=16,mb=36,pw=W-ml-mr,ph=H-mt-mb,narrow=false;
   var seg=h('div',{'class':'seg',role:'group','aria-label':'Show'});
   var bd=h('button',{type:'button','aria-pressed':'true'},'Drivers'),bc=h('button',{type:'button','aria-pressed':'false'},'Constructors');
@@ -250,7 +252,7 @@ function fan(root){
   var wrap=h('div',{'class':'fan-wrap'});root.appendChild(wrap);
   var left=h('div',{'class':'rel'});wrap.appendChild(left);
   var tip=h('div',{'class':'tip'});left.appendChild(tip);
-  document.addEventListener('pointerdown',function(e){if(!left.contains(e.target))tip.style.display='none'});
+  document.addEventListener('pointerdown',function(e){if(!left.contains(e.target)){tip.style.display='none';setFocus(null)}});
   function size(){var w=Math.round(left.getBoundingClientRect().width)||900;W=Math.max(300,Math.min(w,900));narrow=W<520;mr=narrow?60:110;ml=narrow?38:46;H=narrow?300:Math.round(W*0.56);pw=W-ml-mr;ph=H-mt-mb}
   var svg=el('svg',{viewBox:'0 0 '+W+' '+H,'class':'fan-svg',role:'img',tabindex:'0',
     'aria-label':'Points after each remaining race, with a 90 percent band. Use the left and right arrow keys to move between races.'},left);
@@ -262,11 +264,14 @@ function fan(root){
   function lead(){return C.decided[st.mode]?1:0}
   function isOn(r,i){var on=st.off[st.mode+r.key];return on===undefined?((i<6&&i>=lead())||st.all):on}
   function shown(){var r=rows(),s=[];for(var i=0;i<r.length;i++)if(isOn(r[i],i))s.push(r[i]);return s}
+  // one driver at a time gets its 90% band and a heavier line; the others step back
+  function applyFocus(){[].forEach.call(svg.querySelectorAll('[data-k]'),function(n){var k=n.getAttribute('data-k');n.classList.toggle('fx',k===st.focus);n.classList.toggle('dim',st.focus!==null&&k!==st.focus)})}
+  function setFocus(k){if(st.focus!==k){st.focus=k;applyFocus()}}
   function draw(){
     size();svg.setAttribute('viewBox','0 0 '+W+' '+H);clear(svg);var S=shown(),R=C.labels.length;
-    svg.setAttribute('class','fan-svg'+(S.length>4?' dense':''));
+    svg.setAttribute('class','fan-svg');if(st.focus!==null&&!S.some(function(r){return r.key===st.focus}))st.focus=null;
     var champ=rows()[0],hid=lead()&&st.off[st.mode+champ.key]===undefined&&!st.all;
-    hint.textContent=(hid?champ.name+' has clinched the title, so the chart shows the fight for second. Click '+champ.name+' in the list to add the line. ':'')+'Click a name to show or hide it.';
+    hint.textContent=(hid?champ.name+' has clinched the title, so the chart shows the fight for second. Click '+champ.name+' in the list to add the line. ':'')+'Hover a line or a name to see its 90% range. Click a name to show or hide it.';
     var lo=1e9,hi=-1e9;S.forEach(function(r){r.path.low.forEach(function(v){lo=Math.min(lo,v)});r.path.high.forEach(function(v){hi=Math.max(hi,v)})});
     if(!S.length){lo=0;hi=100}
     var step=[10,25,50,100,200].filter(function(s){return (hi-lo)/s<=6})[0]||200;
@@ -280,7 +285,7 @@ function fan(root){
     var g=el('g',{'clip-path':'url(#fanclip)'},svg);
     var ends=[];
     S.forEach(function(r){
-      var gs=el('g',{'class':'c-'+r.key+(rows().indexOf(r)>=6?' minor':'')+(r.dash?' alt':'')},g),p=r.path,d='';
+      var gs=el('g',{'class':'c-'+r.key+(rows().indexOf(r)>=6?' minor':'')+(r.dash?' alt':''),'data-k':r.key},g),p=r.path,d='';
       for(var i=0;i<R;i++)d+=(i?'L':'M')+X(i)+','+Y(p.high[i]);
       for(var i=R-1;i>=0;i--)d+='L'+X(i)+','+Y(p.low[i]);
       el('path',{d:d+'Z','class':'band'},gs);
@@ -290,11 +295,11 @@ function fan(root){
       ends.push({r:r,y0:Y(p.mean[R-1]),y:Y(p.mean[R-1])});
     });
     ends.sort(function(a,b){return a.y-b.y});
-    for(var i=1;i<ends.length;i++)if(ends[i].y<ends[i-1].y+15)ends[i].y=ends[i-1].y+15;
+    var gap=narrow?18:20;for(var i=1;i<ends.length;i++)if(ends[i].y<ends[i-1].y+gap)ends[i].y=ends[i-1].y+gap;
     var labs=el('g',{},svg);
-    ends.forEach(function(e){var cl='c-'+e.r.key+(e.r.dash?' alt':'');if(Math.abs(e.y-e.y0)>2)el('line',{x1:ml+pw+2,y1:e.y0,x2:ml+pw+8,y2:e.y,'class':'lead-line '+cl},labs);
-      var mk=el('g',{'class':cl},labs);if(e.r.dash)el('rect',{x:ml+pw+10,y:e.y-3,width:6,height:6,transform:'rotate(45 '+(ml+pw+13)+' '+e.y+')','class':'dot'},mk);else el('circle',{cx:ml+pw+13,cy:e.y,r:3,'class':'dot'},mk);
-      el('text',{x:ml+pw+22,y:e.y+4,'class':'endlab '+cl},labs,(e.r.name.length>9?e.r.name.slice(0,9):e.r.name)+(narrow?'':' '+Math.round(e.r.path.mean[R-1])))});
+    ends.forEach(function(e){var cl='c-'+e.r.key+(e.r.dash?' alt':'');if(Math.abs(e.y-e.y0)>2)el('line',{x1:ml+pw+2,y1:e.y0,x2:ml+pw+8,y2:e.y,'class':'lead-line '+cl,'data-k':e.r.key},labs);
+      var mk=el('g',{'class':cl,'data-k':e.r.key},labs);if(e.r.dash)el('rect',{x:ml+pw+10,y:e.y-3,width:6,height:6,transform:'rotate(45 '+(ml+pw+13)+' '+e.y+')','class':'dot'},mk);else el('circle',{cx:ml+pw+13,cy:e.y,r:3,'class':'dot'},mk);
+      el('text',{x:ml+pw+22,y:e.y+4,'class':'endlab '+cl,'data-k':e.r.key},labs,(e.r.name.length>9?e.r.name.slice(0,9):e.r.name)+(narrow?'':' '+Math.round(e.r.path.mean[R-1])))});
     var cross=el('line',{x1:0,x2:0,y1:mt,y2:mt+ph,'class':'cross'},svg);
     var hit=el('rect',{x:ml,y:mt,width:pw,height:ph,'class':'hit'},svg);
     function at(i,ui){st.idx=Math.max(0,Math.min(R-1,i));cross.setAttribute('x1',X(st.idx));cross.setAttribute('x2',X(st.idx));if(!ui||st.lastRead!==st.idx){read();st.lastRead=st.idx}if(ui)showTip(S,X(st.idx));else tip.style.display='none'}
@@ -305,9 +310,10 @@ function fan(root){
       var w=tip.offsetWidth,px=x*k,lx=px+14;if(lx+w>left.clientWidth)lx=px-w-14;
       tip.style.left=Math.max(0,lx)+'px';tip.style.top=(mt*k+6)+'px';
     }
-    hit.addEventListener('pointermove',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)),true)});
-    hit.addEventListener('pointerdown',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)),true)});
-    hit.addEventListener('pointerleave',function(e){if(e.pointerType!=='touch'&&document.activeElement!==svg)tip.style.display='none'});
+    function near(e){var b=svg.getBoundingClientRect(),y=(e.clientY-b.top)*H/b.height,bk=null,bd=1e9;S.forEach(function(r){var d=Math.abs(Y(r.path.mean[st.idx])-y);if(d<bd){bd=d;bk=r.key}});setFocus(bk)}
+    hit.addEventListener('pointermove',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)),true);near(e)});
+    hit.addEventListener('pointerdown',function(e){var b=svg.getBoundingClientRect();at(Math.round(((e.clientX-b.left)*W/b.width-ml)/pw*(R-1)),true);near(e)});
+    hit.addEventListener('pointerleave',function(e){if(e.pointerType!=='touch'){setFocus(null);if(document.activeElement!==svg)tip.style.display='none'}});
     svg.onblur=function(){tip.style.display='none'};
     svg.onkeydown=function(e){if(e.key=='ArrowLeft'){at(st.idx-1,true);e.preventDefault()}else if(e.key=='ArrowRight'){at(st.idx+1,true);e.preventDefault()}};
     at(st.idx);
@@ -320,9 +326,11 @@ function fan(root){
       var li=h('li');var b=h('button',{type:'button','aria-pressed':on?'true':'false','class':'c-'+r.key+(r.dash?' alt':''),title:'Show or hide '+r.name});
       b.innerHTML='<span class="sw'+(r.dash?' dash':'')+'"></span><span><span class="nm">'+r.name+'</span><small>'+(on?'':'hidden, ')+Math.round(r.now)+' now, '+Math.round(r.expected)+' expected</small></span><span class="p">'+(C.decided[st.mode]?(i==0?'Clinched':''):pc(r.p))+'</span>';
       b.onclick=function(){st.off[st.mode+r.key]=!on;draw()};
+      if(on){b.addEventListener('pointerenter',function(){setFocus(r.key)});b.addEventListener('focus',function(){setFocus(r.key)});b.addEventListener('pointerleave',function(){setFocus(null)});b.addEventListener('blur',function(){setFocus(null)})}
       li.appendChild(b);side.appendChild(li);
     });
     if(all.length>6){var li=h('li'),m=h('button',{type:'button','class':'more','aria-expanded':st.all?'true':'false'},st.all?'Show the default view':'Show all '+all.length+(st.mode=='drivers'?' drivers':' teams'));m.onclick=function(){st.all=!st.all;all.forEach(function(r,i){if(i>=6)delete st.off[st.mode+r.key]});draw()};li.appendChild(m);side.appendChild(li)}
+    applyFocus();
   }
   function read(){
     var S=shown(),i=st.idx,a='<div class="t">Points after '+(i?C.labels[i]:'round '+C.after)+(i?'':' (now)')+', average and 90% range</div>';

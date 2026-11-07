@@ -205,7 +205,7 @@ def render(ev, ch=None, bt=None, st=None, chk=None):
         if done:
             status = f'<p class="status"><b>{" and ".join(done)}.</b> The points left are not enough for anyone else to catch up.</p>'
     champ = f"""<section class="sec" id="championship"><h2>Championship</h2>
-{status}<p class="lead">Every remaining race is simulated thousands of times and the points are added up. Lines are the average; shaded bands cover 90% of simulated seasons.</p>
+{status}<p class="lead">Every remaining race is simulated thousands of times and the points are added up. Lines are the average. Hover a line to see the band that covers 90% of simulated seasons.</p>
 <div id="fan-root"></div>
 {_champ_check(bt)}
 <details class="tables"><summary>For the data nerds</summary>{_champ_tables(ch)}</details></section>""" if ch else ""
