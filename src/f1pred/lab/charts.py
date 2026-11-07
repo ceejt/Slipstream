@@ -179,6 +179,8 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .pick{display:flex;align-items:center;gap:12px;margin:0 0 16px;font:600 14px/20px var(--body);color:var(--muted)}
 .pick select{background:var(--surface);color:var(--text);border:1px solid var(--rule);font:600 14px/20px var(--body);padding:10px 12px;min-height:44px;border-radius:0}
 .hint{font:400 14px/20px var(--body);color:var(--muted);margin:8px 0 0;max-width:54ch}
+.kbd{font:400 12px/16px var(--body);color:var(--muted);margin:6px 0 0;max-width:60ch}
+@media(max-width:734px),(hover:none){.kbd{display:none}}
 .heat-svg .cell{fill:var(--c);cursor:pointer}
 .heat-svg .tick{stroke:var(--text);stroke-width:2.5}
 .planwrap{display:none;margin:0 0 16px}
@@ -204,6 +206,11 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .dbar{fill:var(--c)}
 .detail svg text{font-size:14px}
 .barref{stroke:var(--text);stroke-width:2.5}
+.hkey{list-style:none;display:flex;flex-wrap:wrap;gap:8px 24px;margin:12px 0 0;padding:0;font:600 14px/20px var(--body);color:var(--muted)}
+.hkey li{display:flex;align-items:center;gap:8px}
+.hkey i{display:inline-block;width:24px;height:14px;box-sizing:border-box;border:2px solid var(--text);font-style:normal}
+.hkey i.d{border:1.5px dashed var(--text)}
+.hkey li[hidden]{display:none}
 .cellval{fill:var(--text);stroke:var(--surface);stroke-width:3px;paint-order:stroke;font:700 12px var(--body);text-anchor:middle;pointer-events:none}
 .tyre{stroke:var(--rule);stroke-width:1}
 .lab svg .tyretxt{fill:#15151E;font-weight:700;text-anchor:middle}
@@ -246,7 +253,7 @@ function fan(root){
   function size(){var w=Math.round(left.getBoundingClientRect().width)||900;W=Math.max(300,Math.min(w,900));narrow=W<520;mr=narrow?60:110;ml=narrow?38:46;H=narrow?300:Math.round(W*0.56);pw=W-ml-mr;ph=H-mt-mb}
   var svg=el('svg',{viewBox:'0 0 '+W+' '+H,'class':'fan-svg',role:'img',tabindex:'0',
     'aria-label':'Points after each remaining race, with a 90 percent band. Use the left and right arrow keys to move between races.'},left);
-  var hint=h('p',{'class':'hint'});left.appendChild(hint);
+  var hint=h('p',{'class':'hint'});left.appendChild(hint);left.appendChild(h('p',{'class':'kbd'},'Keyboard: click the chart first, then use the left and right arrow keys to step through the races.'));
   var side=h('ul',{'class':'side'});wrap.appendChild(side);
   var out=h('div',{'class':'sr','aria-live':'polite'});root.appendChild(out);
   var clip=null;
@@ -258,7 +265,7 @@ function fan(root){
     size();svg.setAttribute('viewBox','0 0 '+W+' '+H);clear(svg);var S=shown(),R=C.labels.length;
     svg.setAttribute('class','fan-svg'+(S.length>4?' dense':''));
     var champ=rows()[0],hid=lead()&&st.off[st.mode+champ.key]===undefined&&!st.all;
-    hint.textContent=(hid?champ.name+' has clinched the title, so the chart shows the fight for second. Click '+champ.name+' in the list to add the line. ':'')+'Hover the chart or use the arrow keys to read each race. Click a name to show or hide it.';
+    hint.textContent=(hid?champ.name+' has clinched the title, so the chart shows the fight for second. Click '+champ.name+' in the list to add the line. ':'')+'Click a name to show or hide it.';
     var lo=1e9,hi=-1e9;S.forEach(function(r){r.path.low.forEach(function(v){lo=Math.min(lo,v)});r.path.high.forEach(function(v){hi=Math.max(hi,v)})});
     if(!S.length){lo=0;hi=100}
     var step=[10,25,50,100,200].filter(function(s){return (hi-lo)/s<=6})[0]||200;
@@ -383,7 +390,10 @@ function heat(root){
   S.drivers.forEach(function(d,i){pk.appendChild(h('option',{value:i},d.driver+' ('+d.team+')'))});
   var ccap=h('p',{'class':'cellcap'});box.appendChild(ccap);
   pk.onchange=function(){di=+pk.value;sel=null;draw()};
-  box.appendChild(h('p',{'class':'hint'},'Solid outline: the plan you are looking at. Dashed outline: the best plan for this driver. Numbers mark the three best plans. Columns are the lap of the stop. Move over the squares or use the arrow keys; press B to jump to the best plan.'));
+  var hk=h('ul',{'class':'hkey','aria-label':'How to read the squares'});box.appendChild(hk);
+  [['sel','Plan shown'],['d','Best plan']].forEach(function(k){var li=h('li');li.appendChild(h('i',{'class':k[0],'aria-hidden':'true'}));li.appendChild(document.createTextNode(k[1]));hk.appendChild(li)});
+  var nt=h('span',{},' The three highest squares show their points.');
+  var hn=h('p',{'class':'hint'},'Columns are the lap of the stop.');hn.appendChild(nt);box.appendChild(hn);box.appendChild(h('p',{'class':'kbd'},'Keyboard: click the grid first, then use the arrow keys to move between plans, or B to jump to the best plan.'));
   var G={};
   function cells(){var d=S.drivers[di],H=d.heat,v=[];H.points.forEach(function(r){r.forEach(function(x){v.push(x)})});return {min:Math.min.apply(null,v),max:Math.max.apply(null,v)}}
   function pick(r,c,ui){var d=S.drivers[di],H=d.heat;sel={r:r,c:c,plan:{stops:1,laps:[H.laps[c]],tyres:H.orders[r]},m:{points:H.points[r][c],podium:H.podium[r][c],win:H.win[r][c],dist:H.dist[r][c]}};mark();info();if(ui)cellTip(r,c);else tip.style.display='none'}
@@ -413,7 +423,7 @@ function heat(root){
       });
     });
     H.laps.forEach(function(lap,c){if(c%(nar?6:4)==0)el('text',{x:ml+c*cw+cw/2,y:mt-10,'text-anchor':'middle'},svg,lap)});
-    G={ml:ml,mt:mt,cw:cw,rh:rh,W:W,nL:nL,nO:nO,best:best};
+    G={ml:ml,mt:mt,cw:cw,rh:rh,W:W,nL:nL,nO:nO,best:best};nt.hidden=cw<26;
     el('rect',{x:ml+best.c*cw-1,y:mt+best.r*rh-1,width:cw+2,height:rh+2,'class':'best'},svg);
     var ring=el('rect',{x:0,y:0,width:cw,height:rh,'class':'ring',id:'heatring'},svg);G.ring=ring;
     G.top={};all.sort(function(p,q){return q.v-p.v});

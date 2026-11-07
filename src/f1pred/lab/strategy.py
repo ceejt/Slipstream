@@ -39,6 +39,11 @@ def candidates(L, step):
     return out
 
 
+def grid_laps(L):
+    """The stop laps the heatmap shows: every second lap from 20% to 80% of the race."""
+    return list(range(int(0.2 * L), int(0.8 * L) + 1, 2))
+
+
 def describe(plan):
     laps, comps = plan
     return {"stops": len(laps), "laps": [int(x) for x in laps], "tyres": comps}
@@ -63,6 +68,7 @@ def optimise(s, car, L, n_screen=300, n_final=1500, seed=0, step=5, keep=6):
         for delta in itertools.product((-2, -1, 0, 1, 2), repeat=len(laps)):
             new = [x + d for x, d in zip(laps, delta)]
             ok = all(b - a >= MIN_STINT for a, b in zip([0] + new, new)) and new[-1] < L - MIN_STINT
+            ok = ok and all(x % 2 == int(0.2 * L) % 2 for x in new)  # same laps as the heatmap, so the two always agree
             key = (tuple(new), tuple(comps))
             if ok and key not in seen:
                 seen.add(key)
@@ -76,9 +82,11 @@ def optimise(s, car, L, n_screen=300, n_final=1500, seed=0, step=5, keep=6):
 ORDERS = [("SOFT", "MEDIUM"), ("SOFT", "HARD"), ("MEDIUM", "SOFT"), ("MEDIUM", "HARD"), ("HARD", "SOFT"), ("HARD", "MEDIUM")]
 
 
-def heatmap(s, car, L, n=600, seed=2):
-    """Expected points for every one-stop plan on a fine grid of stop laps, plus the best two-stop plan."""
-    laps = list(range(int(0.2 * L), int(0.8 * L) + 1, 2))
+def heatmap(s, car, L, n=1500, seed=1):
+    """Expected points for every one-stop plan on a grid of stop laps, plus the best two-stop plan.
+    The same number of races and the same random draws as the final run in `optimise`, so a plan that is in both
+    has the same value in both."""
+    laps = grid_laps(L)
     cells = [[evaluate(s, car, ([lap], list(o)), n, seed) for lap in laps] for o in ORDERS]
     two = candidates(L, 6)
     two = [p for p in two if len(p[0]) == 2]
@@ -157,7 +165,7 @@ def run(codes=None, n_final=1500):
         base_m, best = optimise(s, car, L, n_final=n_final)
         grid = None if not has_grid else int(rows["grid"].iloc[car])
         drivers.append({"driver": rows["Abbreviation"].iloc[car], "team": rows["TeamName"].iloc[car], "grid": grid,
-                        "typical": base_m, "typical_plan": typical_plan(s.plans), "best": best, "heat": heatmap(s, car, L)})
+                        "typical": base_m, "typical_plan": typical_plan(s.plans), "best": best, "heat": heatmap(s, car, L, n=n_final, seed=1)})
         print(drivers[-1]["driver"], "typical", round(base_m["points"], 2), "best", best[0], flush=True)
     s.forced, s.grid, s.pace = None, np.arange(1, len(rows) + 1), np.zeros(len(rows))
     out = {"created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"), "year": year, "round": rnd,
