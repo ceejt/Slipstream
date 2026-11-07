@@ -149,6 +149,7 @@ CSS = """
 .lab svg .minor .band{opacity:.03}
 .lab svg .minor .dot{opacity:.75}
 .lab svg .endlab{fill:var(--t);font-weight:700}
+.lab svg .axt{font-weight:500;letter-spacing:.3px}
 .lab svg .fx .band{opacity:.24}
 .lab svg .fx .line{stroke-width:3.5}
 .lab svg .dim .line,.lab svg .dim .dot,.lab svg .endlab.dim,.lab svg .lead-line.dim{opacity:.3}
@@ -418,7 +419,7 @@ function heat(root){
   function choose(plan,m){sel={r:null,c:null,plan:plan,m:m};mark();info()}
   function draw(){
     var keep=sel;clear(svg);var d=S.drivers[di],H=d.heat,nL=H.laps.length,nO=H.orders.length;
-    var W=Math.max(300,Math.min(Math.round(box.clientWidth-34)||900,900)),nar=W<520,ml=nar?108:150,mr=8,mt=28,cw=(W-ml-mr)/nL,rh=nar?30:36,ph=nO*rh,Ht=mt+ph+(nar?60:58);
+    var W=Math.max(300,Math.min(Math.round(box.clientWidth-34)||900,900)),nar=W<520,ml=nar?108:150,mr=8,mt=46,cw=(W-ml-mr)/nL,rh=nar?30:36,ph=nO*rh,Ht=mt+ph+(nar?60:58);
     svg.setAttribute('viewBox','0 0 '+W+' '+Ht);svg.setAttribute('class','heat-svg c-'+d.driver);
     var r0=cells(),best=null,all=[];
     var cs=getComputedStyle(svg),C0=hx(cs.getPropertyValue('--surface')),C1=hx(cs.getPropertyValue('--c')),C2=hx(cs.getPropertyValue('--hi'));
@@ -434,6 +435,7 @@ function heat(root){
       });
     });
     H.laps.forEach(function(lap,c){if(c%(nar?6:4)==0)el('text',{x:ml+c*cw+cw/2,y:mt-10,'text-anchor':'middle'},svg,lap)});
+    el('text',{x:ml,y:mt-30,'class':'axt'},svg,'Stop lap');el('text',{x:ml-10,y:mt-10,'text-anchor':'end','class':'axt'},svg,'Tyre order');
     G={ml:ml,mt:mt,cw:cw,rh:rh,W:W,nL:nL,nO:nO,best:best};nt.hidden=cw<26;
     el('rect',{x:ml+best.c*cw-1,y:mt+best.r*rh-1,width:cw+2,height:rh+2,'class':'best'},svg);
     var ring=el('rect',{x:0,y:0,width:cw,height:rh,'class':'ring',id:'heatring'},svg);G.ring=ring;
