@@ -1,12 +1,12 @@
 {
   "year": 2026,
-  "round": 20,
-  "event": "Brazilian Grand Prix",
-  "date": "2026-11-08",
-  "quali_date": "2026-11-07",
+  "round": 21,
+  "event": "Las Vegas Grand Prix",
+  "date": "2026-11-22",
+  "quali_date": "2026-11-21",
   "forecast": {
-    "rain_chance": 95,
-    "rain_mm": 1.4,
-    "asof": "2026-11-06"
+    "rain_chance": 10,
+    "rain_mm": 0.0,
+    "asof": "2026-11-09"
   }
 }
