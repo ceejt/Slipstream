@@ -3,18 +3,26 @@
 The job is meant to be started every 20 minutes. Outside a race weekend it does nothing.
 Inside one it makes the prediction once, after qualifying and before the race start, and
 adds the result once, after the race. This file holds the decision (which race is live
-and which step is due) and the runner for the steps. A step is one of a fixed list of
-`python -m f1pred...` commands; nothing else can be run. All times are UTC.
+and which step is due), the runner for the steps and the run itself. A step is one of a
+fixed list of `python -m f1pred...` commands; nothing else can be run. What has been done
+for each race is kept in data/auto_state.json. All times are UTC.
+
+Usage: python -m f1pred.auto
 """
 import fcntl
+import json
 import subprocess
 import sys
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
-from .config import DATA, ROOT
+from . import jolpica
+from .config import DATA, NEXT_RACE, OUTCOMES, PREDICTIONS, ROOT
 
 LOCK = DATA / "auto.lock"
+STATE = DATA / "auto_state.json"
+MAX_FAILURES = 3   # failed runs of the prediction or of the result, per race, before the job stops trying
+MIN_DRIVERS = 10   # fewer rows than this means Jolpica does not have the full session yet
 
 # The only commands the job can run: step name -> (module, number of integer arguments, timeout in seconds).
 STEPS = {
@@ -116,3 +124,154 @@ def decide(race, now, has_prediction, has_outcome, quali_ready, state):
     if has_outcome or now < race["race_utc"] + RACE_LENGTH:
         return IDLE
     return OUTCOME
+
+
+def load_state(path=STATE):
+    """What the job has done so far, per race. Empty if the file is missing or unreadable."""
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save_state(state, path=STATE):
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state, indent=2))
+    tmp.replace(path)
+
+
+def _now():
+    return datetime.now(timezone.utc)
+
+
+def calendar(year):
+    return jolpica.get(str(year), year, limit=jolpica.PAGE)["RaceTable"]["Races"]
+
+
+def _published(year, rnd, kind, rows_key):
+    races = jolpica.get(f"{year}/{rnd}/{kind}", year, limit=jolpica.PAGE)["RaceTable"]["Races"]
+    return bool(races) and len(races[0].get(rows_key, [])) >= MIN_DRIVERS
+
+
+def quali_published(year, rnd):
+    return _published(year, rnd, "qualifying", "QualifyingResults")
+
+
+def results_published(year, rnd):
+    return _published(year, rnd, "results", "Results")
+
+
+def has_prediction(year, rnd):
+    """A prediction made before the race is saved. A backtest of the same race does not count."""
+    try:
+        return json.loads((PREDICTIONS / f"{year}_R{rnd:02d}.json").read_text())["mode"] == "upcoming"
+    except (OSError, ValueError, KeyError):
+        return False
+
+
+def has_outcome(year, rnd):
+    return (OUTCOMES / f"{year}_R{rnd:02d}.json").exists()
+
+
+def _strategy_is_for(year, rnd):
+    """The pit strategy step plans the race named in data/next_race.json. True if that is this race."""
+    try:
+        nxt = json.loads(NEXT_RACE.read_text())
+        return (nxt["year"], nxt["round"]) == (year, rnd)
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+
+
+def prediction_pass(race):
+    """Fetch, plan the pit stops, predict, rebuild the Race lab page. Returns (ok, notes).
+
+    The pit plans run before the prediction because saving a prediction moves data/next_race.json
+    on to the following race. The pit plans and the lab page are extras: if one fails the pass
+    still counts, with a note. The prediction is not started once the race has begun.
+    """
+    year, rnd = race["year"], race["round"]
+    ok, out = run_step("fetch")
+    if not ok:
+        return False, [f"fetch failed: {out}"]
+    notes = []
+    if not _strategy_is_for(year, rnd):
+        notes.append("pit plans skipped: data/next_race.json names another race")
+    elif _now() + timedelta(seconds=STEPS["strategy"][2]) >= race["race_utc"]:
+        notes.append("pit plans skipped: too close to the race start")
+    else:
+        ok, out = run_step("strategy")
+        if not ok:
+            notes.append(f"pit plans not updated: {out}")
+    if _now() >= race["race_utc"]:
+        return False, notes + ["the race started before the prediction could run"]
+    ok, out = run_step("predict", year, rnd)
+    if not ok or not has_prediction(year, rnd):
+        return False, notes + [f"predict failed: {out}"]
+    ok, out = run_step("lab_report")
+    if not ok:
+        notes.append(f"Race lab page not rebuilt: {out}")
+    return True, notes
+
+
+def outcome_pass(race):
+    """Fetch, then add the result beside the saved prediction. Returns (ok, notes)."""
+    year, rnd = race["year"], race["round"]
+    for step, args in (("fetch", ()), ("outcome", (year, rnd))):
+        ok, out = run_step(step, *args)
+        if not ok:
+            return False, [f"{step} failed: {out}"]
+    if not has_outcome(year, rnd):
+        return False, [f"outcome saved no result: {out}"]
+    return True, []
+
+
+def tick(now, cal, state):
+    """One run of the job. Changes `state` in place and returns what happened, or None if nothing did.
+
+    The return value is a dict with "kind" (ask_grid, missed, predicted, scored, failed, gave_up),
+    "race" and "notes". After MAX_FAILURES failed runs of a pass the job stops trying it for that race.
+    """
+    race = find_race(cal, now)
+    if race is None:
+        return None
+    year, rnd = race["year"], race["round"]
+    s = state.setdefault(f"{year}_R{rnd:02d}", {})
+    action = decide(race, now, has_prediction(year, rnd), has_outcome(year, rnd),
+                    lambda: quali_published(year, rnd), s)
+    if action == IDLE:
+        return None
+    if action in (ASK_GRID, MISSED):
+        s["grid_asked" if action == ASK_GRID else "missed"] = True
+        return {"kind": action, "race": race, "notes": []}
+    failures = f"{action}_failures"
+    if s.get(failures, 0) >= MAX_FAILURES:
+        return None
+    if action == OUTCOME and not results_published(year, rnd):
+        return None
+    ok, notes = prediction_pass(race) if action == PREDICT else outcome_pass(race)
+    if ok:
+        s[f"{action}_utc"] = now.isoformat(timespec="seconds")
+        return {"kind": "predicted" if action == PREDICT else "scored", "race": race, "notes": notes}
+    s[failures] = s.get(failures, 0) + 1
+    return {"kind": "gave_up" if s[failures] >= MAX_FAILURES else "failed", "step": action,
+            "race": race, "notes": notes}
+
+
+def main():
+    with lock() as held:
+        if not held:
+            print("another run holds the lock; nothing done")
+            return
+        now, state = _now(), load_state()
+        try:
+            event = tick(now, calendar(now.year), state)
+        except Exception as e:  # a network error here is not a failed step; the next run tries again
+            print(f"run stopped: {e}")
+            return
+        finally:
+            save_state(state)
+        print("nothing to do" if event is None else f"{event['kind']}: {event['race']['event']} {event['notes']}")
+
+
+if __name__ == "__main__":
+    main()
