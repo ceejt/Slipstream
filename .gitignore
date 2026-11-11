@@ -8,3 +8,4 @@ data/raw/
 dump.txt
 node_modules/
 devlog/
+data/auto.lock

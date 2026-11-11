@@ -64,3 +64,41 @@ def test_outcome_is_due_after_the_race_and_only_once():
     assert _decide(RACE + timedelta(hours=1), has_prediction=True) == auto.IDLE
     assert _decide(RACE + auto.RACE_LENGTH, has_prediction=True) == auto.OUTCOME
     assert _decide(RACE + auto.RACE_LENGTH, has_prediction=True, has_outcome=True) == auto.IDLE
+
+
+def test_allowlist_only_runs_f1pred_modules_with_whole_number_arguments():
+    for step, (module, n_args, timeout) in auto.STEPS.items():
+        cmd = auto.command(step, *[2026, 21][:n_args])
+        assert cmd[:3] == [auto.sys.executable, "-m", module] and module.startswith("f1pred.")
+        assert all(a.isdigit() for a in cmd[3:]) and timeout > 0
+        assert "git" not in " ".join(cmd[1:])
+
+
+def test_command_refuses_anything_off_the_list():
+    for bad in (("git",), ("push",), ("predict",), ("predict", 2026), ("predict", 2026, "21"),
+                ("predict", 2026, "--grid"), ("predict", 2026, -1), ("predict", 2026, True), ("fetch", 2026)):
+        try:
+            auto.command(*bad)
+        except ValueError:
+            continue
+        raise AssertionError(f"{bad} was accepted")
+
+
+def test_run_step_reports_failure_and_timeout(monkeypatch):
+    monkeypatch.setitem(auto.STEPS, "fetch", ("f1pred.no_such_module", 0, 60))
+    ok, tail = auto.run_step("fetch")
+    assert not ok and "no_such_module" in tail
+
+    def slow(*a, **k):
+        raise auto.subprocess.TimeoutExpired(a[0], k["timeout"])
+    monkeypatch.setattr(auto.subprocess, "run", slow)
+    assert auto.run_step("fetch") == (False, "fetch stopped after 60 s")
+
+
+def test_lock_lets_one_run_in_at_a_time(tmp_path):
+    path = tmp_path / "auto.lock"
+    with auto.lock(path) as first:
+        with auto.lock(path) as second:
+            assert first and not second
+    with auto.lock(path) as again:
+        assert again

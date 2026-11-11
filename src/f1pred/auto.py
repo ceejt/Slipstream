@@ -2,10 +2,64 @@
 
 The job is meant to be started every 20 minutes. Outside a race weekend it does nothing.
 Inside one it makes the prediction once, after qualifying and before the race start, and
-adds the result once, after the race. This file holds the decision only: which race is
-live and which step is due. All times are UTC.
+adds the result once, after the race. This file holds the decision (which race is live
+and which step is due) and the runner for the steps. A step is one of a fixed list of
+`python -m f1pred...` commands; nothing else can be run. All times are UTC.
 """
+import fcntl
+import subprocess
+import sys
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+
+from .config import DATA, ROOT
+
+LOCK = DATA / "auto.lock"
+
+# The only commands the job can run: step name -> (module, number of integer arguments, timeout in seconds).
+STEPS = {
+    "fetch": ("f1pred.fetch", 0, 900),
+    "strategy": ("f1pred.lab.strategy", 0, 1800),
+    "predict": ("f1pred.predict", 2, 600),
+    "lab_report": ("f1pred.lab.report", 0, 120),
+    "outcome": ("f1pred.outcome", 2, 300),
+}
+
+
+def command(step, *args):
+    """The argument list for one allowed step. Arguments must be whole numbers (year, round)."""
+    if step not in STEPS:
+        raise ValueError(f"step {step!r} is not allowed")
+    module, n_args, _ = STEPS[step]
+    if len(args) != n_args or not all(type(a) is int and a >= 0 for a in args):
+        raise ValueError(f"step {step!r} takes {n_args} whole-number arguments, got {args!r}")
+    return [sys.executable, "-m", module, *(str(a) for a in args)]
+
+
+def run_step(step, *args):
+    """Run one allowed step from the project folder, without a shell. Returns (ok, last lines of its output).
+    A step that runs past its timeout is stopped and counts as failed."""
+    cmd = command(step, *args)
+    try:
+        p = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=STEPS[step][2])
+    except subprocess.TimeoutExpired:
+        return False, f"{step} stopped after {STEPS[step][2]} s"
+    tail = "\n".join((p.stdout + p.stderr).strip().splitlines()[-5:])
+    return p.returncode == 0, tail
+
+
+@contextmanager
+def lock(path=LOCK):
+    """Hold the job's lock file. Yields True if this run holds it, False if another run does.
+    The system drops the lock when the process ends, so a crash cannot leave it stuck."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            yield False
+            return
+        yield True
 
 QUALI_LENGTH = timedelta(hours=1)    # no point asking Jolpica for the grid before qualifying ends
 GRID_GRACE = timedelta(hours=3)      # after qualifying starts; past this, ask the user for --grid
