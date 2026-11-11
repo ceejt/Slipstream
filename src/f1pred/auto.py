@@ -7,6 +7,9 @@ and which step is due), the runner for the steps and the run itself. A step is o
 fixed list of `python -m f1pred...` commands; nothing else can be run. What has been done
 for each race is kept in data/auto_state.json. All times are UTC.
 
+The job tells the user what happened with a macOS banner and writes the details, with the
+commit commands to run by hand, to data/auto_status.txt. It commits and pushes nothing.
+
 Usage: python -m f1pred.auto
 """
 import fcntl
@@ -21,6 +24,7 @@ from .config import DATA, NEXT_RACE, OUTCOMES, PREDICTIONS, ROOT
 
 LOCK = DATA / "auto.lock"
 STATE = DATA / "auto_state.json"
+STATUS = DATA / "auto_status.txt"
 MAX_FAILURES = 3   # failed runs of the prediction or of the result, per race, before the job stops trying
 MIN_DRIVERS = 10   # fewer rows than this means Jolpica does not have the full session yet
 
@@ -257,6 +261,89 @@ def tick(now, cal, state):
             "race": race, "notes": notes}
 
 
+def _when(t):
+    return f"{t:%a %d %b %H:%M} UTC ({t.astimezone():%a %H:%M} local time)"
+
+
+def report(event, now):
+    """The banner line and the full status text for what `tick` returned."""
+    race, kind = event["race"], event["kind"]
+    year, rnd = race["year"], race["round"]
+    gp, tag, start = race["event"].replace("Grand Prix", "GP"), f"{year}_R{rnd:02d}", _when(race["race_utc"])
+    page = f"reports/{tag}.html reports/index.html data/next_race.json"
+    if kind == "predicted":
+        banner = f"{gp}: prediction saved. Commit and push before the race start. Penalties? Use --start-grid."
+        body = [
+            f"The pre-race prediction is saved. The race starts {start}.",
+            "",
+            "If the official starting grid differs from qualifying (penalties), run this again before the start:",
+            f"  python -m f1pred.predict {year} {rnd} --start-grid CODE,CODE,...   (official starting order)",
+            "",
+            "Then commit and push before the race start, so the commit time proves the prediction came first:",
+            f"  git add data/predictions/{tag}.json {page}",
+            f'  git commit -m "Add the pre-race prediction for the {gp}"',
+            "  git add data/strategy.json reports/lab/index.html",
+            f'  git commit -m "Update the Race lab pit plans for the {gp} with the qualifying grid"',
+            "  git push",
+            "The second commit has nothing to add if the pit plans were skipped (see the notes).",
+        ]
+    elif kind == "scored":
+        banner = f"{gp}: result added to the prediction. Commit and push when ready."
+        body = [
+            "The result is saved beside the prediction and the page is rebuilt.",
+            "",
+            f"  git add data/outcomes/{tag}.json {page}",
+            f'  git commit -m "Add the result of the {gp}"',
+            "  git push",
+            "",
+            "Still by hand after a race: evaluate, lab.fetch, lab.season, lab.strategy, lab.report.",
+        ]
+    elif kind == ASK_GRID:
+        banner = f"{gp}: qualifying is not on Jolpica yet. Run predict with --grid before the race start."
+        body = [
+            f"Qualifying is still not published. The race starts {start}.",
+            "To be sure of a pre-race prediction, type the qualifying order yourself before the start:",
+            f"  python -m f1pred.predict {year} {rnd} --grid CODE,CODE,...   (qualifying order)",
+            "Add --start-grid CODE,CODE,... if the official starting grid differs (penalties).",
+            "The job still predicts by itself if Jolpica publishes qualifying before the start.",
+        ]
+    elif kind == MISSED:
+        banner = f"{gp}: the race started with no prediction. None will be made."
+        body = [
+            f"The race started {start} and no pre-race prediction was saved, so the job makes none.",
+            "It can only be added as a labelled backtest, once the result is in:",
+            "  python -m f1pred.fetch",
+            f"  python -m f1pred.predict {year} {rnd}",
+        ]
+    else:
+        what = "prediction" if event["step"] == PREDICT else "result"
+        by_hand = (f"python -m f1pred.predict {year} {rnd}   (add --grid CODE,CODE,... if qualifying is not on Jolpica)"
+                   if event["step"] == PREDICT else f"python -m f1pred.outcome {year} {rnd}")
+        if kind == "gave_up":
+            banner = f"{gp}: the {what} run failed {MAX_FAILURES} times. The job has stopped trying. Run it by hand."
+            body = [f"The {what} run failed {MAX_FAILURES} times and the job will not try again for this race."]
+        else:
+            banner = f"{gp}: the {what} run failed. The job will try again on its next run."
+            body = [f"The {what} run failed. The job tries again on its next run, up to {MAX_FAILURES} times in all."]
+        body += ["To run it by hand:", "  python -m f1pred.fetch", f"  {by_hand}"]
+        if event["step"] == PREDICT:
+            body.append(f"A prediction only counts as pre-race before the start, {start}.")
+    notes = ["", "Notes:"] + [f"- {n}" for n in event["notes"]] if event["notes"] else []
+    head = ["Slipstream automatic job", f"Written {_when(now)}", f"{race['event']}, {year} round {rnd}", ""]
+    return banner, "\n".join(head + body + notes) + "\n"
+
+
+def notify(text, title="Slipstream"):
+    """Show a macOS banner. Returns False if it could not be shown; never raises.
+    The text is passed as an argument, so nothing in it is read as script."""
+    script = ["-e", "on run argv", "-e", "display notification (item 1 of argv) with title (item 2 of argv)",
+              "-e", "end run"]
+    try:
+        return subprocess.run(["osascript", *script, text, title], capture_output=True, timeout=15).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 def main():
     with lock() as held:
         if not held:
@@ -270,7 +357,13 @@ def main():
             return
         finally:
             save_state(state)
-        print("nothing to do" if event is None else f"{event['kind']}: {event['race']['event']} {event['notes']}")
+        if event is None:
+            print("nothing to do")
+            return
+        banner, status = report(event, now)
+        STATUS.write_text(status)
+        shown = notify(banner)
+        print(banner if shown else f"{banner} (banner not shown; see {STATUS.name})")
 
 
 if __name__ == "__main__":

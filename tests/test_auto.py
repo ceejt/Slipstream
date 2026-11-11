@@ -199,3 +199,57 @@ def test_state_file_round_trip_and_unreadable_file(tmp_path):
     assert auto.load_state(path) == {"2026_R21": {"missed": True}}
     path.write_text("{not json")
     assert auto.load_state(path) == {}
+
+
+def _report(kind, notes=(), **extra):
+    return auto.report({"kind": kind, "race": R, "notes": list(notes), **extra}, AFTER_QUALI)
+
+
+def test_prediction_report_has_the_commit_commands_and_the_start_grid_reminder():
+    banner, status = _report("predicted", ["pit plans skipped: too close to the race start"])
+    assert "Las Vegas GP" in banner and "--start-grid" in banner
+    assert "python -m f1pred.predict 2026 21 --start-grid" in status
+    assert "git add data/predictions/2026_R21.json reports/2026_R21.html reports/index.html" in status
+    assert 'git commit -m "Add the pre-race prediction for the Las Vegas GP"' in status
+    assert "22 Nov 04:00 UTC" in status and "- pit plans skipped" in status
+
+
+def test_result_report_names_the_outcome_file():
+    banner, status = _report("scored")
+    assert "result added" in banner and "git add data/outcomes/2026_R21.json" in status and "Notes" not in status
+
+
+def test_late_qualifying_and_missed_reports_say_what_to_type():
+    banner, status = _report(auto.ASK_GRID)
+    assert "--grid" in banner and "python -m f1pred.predict 2026 21 --grid" in status
+    banner, status = _report(auto.MISSED)
+    assert "None will be made" in banner and "backtest" in status and "git" not in status
+
+
+def test_failure_reports_give_the_command_to_run_by_hand():
+    banner, status = _report("failed", ["predict failed: boom"], step=auto.PREDICT)
+    assert "try again" in banner and "python -m f1pred.predict 2026 21" in status and "- predict failed: boom" in status
+    banner, status = _report("gave_up", step=auto.OUTCOME)
+    assert "stopped trying" in banner and "python -m f1pred.outcome 2026 21" in status
+
+
+def test_no_report_puts_a_contributor_line_in_a_commit():
+    for kind, extra in (("predicted", {}), ("scored", {}), ("gave_up", {"step": auto.PREDICT})):
+        status = _report(kind, **extra)[1]
+        assert "Co-Authored" not in status and "Claude" not in status
+
+
+def test_banner_text_is_passed_as_an_argument_and_a_failure_is_swallowed(monkeypatch):
+    seen = []
+
+    class Done:
+        returncode = 0
+    monkeypatch.setattr(auto.subprocess, "run", lambda cmd, **k: seen.append(cmd) or Done())
+    text = 'say "hi" & do shell script'
+    assert auto.notify(text) and seen[0][0] == "osascript" and seen[0][-2:] == [text, "Slipstream"]
+    assert text not in " ".join(seen[0][:-2])
+
+    def broken(cmd, **k):
+        raise FileNotFoundError("osascript")
+    monkeypatch.setattr(auto.subprocess, "run", broken)
+    assert auto.notify("x") is False
