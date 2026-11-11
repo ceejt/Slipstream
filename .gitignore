@@ -11,3 +11,4 @@ devlog/
 data/auto.lock
 data/auto_state.*
 data/auto_status.txt
+data/auto.log

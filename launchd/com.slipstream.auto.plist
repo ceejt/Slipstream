@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Runs the automatic race weekend job every 20 minutes while this Mac is awake.
+     __ROOT__ is replaced with the project folder at install time; see README.md. -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.slipstream.auto</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__ROOT__/.venv/bin/python</string>
+        <string>-m</string>
+        <string>f1pred.auto</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>__ROOT__</string>
+    <key>StartInterval</key>
+    <integer>1200</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>__ROOT__/data/auto.log</string>
+    <key>StandardErrorPath</key>
+    <string>__ROOT__/data/auto.log</string>
+</dict>
+</plist>

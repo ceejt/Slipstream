@@ -15,6 +15,20 @@ Podium prediction with one rule: a feature for race N only uses what is known be
     .venv/bin/python -m f1pred.outcome                      # after the race: adds the result beside the saved prediction
     .venv/bin/pytest                                       # leakage tests
 
+## Automatic job (macOS)
+`python -m f1pred.auto` checks the calendar and, in a race weekend, makes the prediction after qualifying and adds the result after the race. It shows a banner and writes `data/auto_status.txt` with the commit commands. It never commits or pushes.
+
+Install, from the project folder (runs every 20 minutes while the Mac is awake):
+
+    sed "s|__ROOT__|$PWD|g" launchd/com.slipstream.auto.plist > ~/Library/LaunchAgents/com.slipstream.auto.plist
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.slipstream.auto.plist
+    cat data/auto.log                                      # should say "nothing to do" outside a race weekend
+
+Remove:
+
+    launchctl bootout gui/$(id -u)/com.slipstream.auto
+    rm ~/Library/LaunchAgents/com.slipstream.auto.plist
+
 ## Index intro
 
 The index page opens with a short intro: a cartoon car drives across by itself with smoke behind it, once per browser session, and a Skip button ends it. It draws its own car and plays no sound by default. To use your own, put the files in `reports/assets/` and rebuild the pages (`.venv/bin/python -c "from f1pred.report import write_index; write_index()"`; any `predict` run does it too):
@@ -29,6 +43,7 @@ Check that you are allowed to use each file. The intro is skipped for reduced mo
 - `src/f1pred/fetch.py`: Jolpica to `data/raw/` (results, qualifying). No weather or safety car data yet
 - `src/f1pred/predict.py`, `report.py`: one-race prediction as JSON and a static HTML page, plus the index
 - `src/f1pred/outcome.py`: adds the real result to a saved prediction (`data/outcomes/`) and rebuilds its page; the prediction file is never changed
+- `src/f1pred/auto.py`: the automatic race weekend job (decision, allowlisted steps, state, banner); `launchd/` holds its schedule
 - `src/f1pred/features.py`: leak-free rolling driver, team and circuit features
 - `src/f1pred/evaluate.py`: walk-forward split, baselines, metrics
 - `data/circuits.csv`: static circuit attributes (starter rows, verify values, add the rest). The `location` must match Jolpica's locality, for example `Spa`

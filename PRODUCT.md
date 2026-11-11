@@ -31,7 +31,7 @@ Honest evaluation. Features for race N use only information known before race N.
 - Qualifying is on Saturday and the race on Sunday. Between races, the Upcoming list shows the next race as an orange placeholder ("Prediction after qualifying on 7 Nov"), with a forecast rain chance from Open-Meteo. The forecast is shown to readers only and is not a model input. The race is cached in `data/next_race.json` and the page falls back to that file if the network is down.
 - The workflow is command line: `fetch`, `evaluate`, `predict <year> <round>`, which writes `data/predictions/<year>_R<round>.json` and `reports/<year>_R<round>.html`. After the race, `fetch` then `outcome` adds the result in `data/outcomes/` and rebuilds the page. The saved prediction is not touched.
 - A report has three modes. **Upcoming**: the race has not run. **Scored**: a pre-race prediction with the real result added afterward, showing HIT or MISS for the three picks. **Backtest**: a prediction made for a race already in the data, so it was not made before the race.
-- For now, predictions are committed and pushed by hand, so the commit time on a prediction is the proof it came before the race.
+- Predictions are committed and pushed by hand, so the commit time on a prediction is the proof it came before the race. The automatic job (see Capabilities and Constraints) makes the files but never commits or pushes.
 
 ## Capabilities and Constraints
 
@@ -51,7 +51,14 @@ Honest evaluation. Features for race N use only information known before race N.
   - `python -m f1pred.lab.report` writes `reports/lab/index.html` from those files. After each race, refresh the forecast and the strategy and rebuild the page.
 - The simulator: each lap, a car's time is its pace plus the tyre offset, tyre wear, a fuel and track slope and noise. A car is held behind the one ahead unless it is faster by a margin; a car in the pit lane is neither held nor holds. Stops cost the fitted pit loss. Cars can retire, and a safety car can close the field. Pace is forecast from team and driver form and the qualifying gap. All fitting uses earlier races only. Wet races (7) and one race the lap data did not fit are left out of the fits.
 - The simulator does not model rain, tyre warm-up or sudden tyre drop-off, damage, penalties during the race, team orders, or the effect of fuel on tyre wear. Fuel load is not a strategy choice: F1 has no refuelling, so the burn is in the pace.
-- Planned, not built: a scheduled job that makes each prediction after qualifying and runs the `outcome` step after the race. Until then, both are run by hand.
+- **Automatic job.** `python -m f1pred.auto`, started every 20 minutes by a macOS launchd agent (`launchd/com.slipstream.auto.plist`). It runs on the owner's Mac only, and only while the Mac is awake. Not yet used for a real race: the first is the 2026 Las Vegas GP.
+  - It acts only in a race weekend window, from the start of qualifying to 3 days after the race start, with the times read from the Jolpica calendar.
+  - Once qualifying is on Jolpica it runs `fetch`, `lab.strategy`, `predict` and `lab.report`, one time per race. Three hours after the race start, once the result is on Jolpica, it runs `fetch` and `outcome`, one time per race.
+  - It never predicts after the race start. A race that started with no prediction is reported as missed and can only be added as a backtest.
+  - If qualifying is still not on Jolpica 3 hours after it started, it tells the owner to run `predict` with `--grid` by hand.
+  - It can run only those five commands, with whole-number arguments, and no git command. After 3 failed runs of a step for a race it stops trying.
+  - It reports with a macOS banner and writes `data/auto_status.txt` with the commit commands to run by hand. Its state is in `data/auto_state.json` and its log in `data/auto.log`; all three are git-ignored.
+  - Still by hand: `--start-grid` for penalties, every commit and push, and after a race `evaluate`, `lab.fetch`, `lab.season` and the next race's `lab.strategy`.
 
 ## Brand Commitments
 
