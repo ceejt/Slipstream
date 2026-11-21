@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 
 from f1pred.features import build
@@ -290,7 +291,16 @@ def test_race_title_gets_an_embedded_flag_only_for_a_known_country(tmp_path, mon
 def test_pick_cards_show_a_driver_photo_only_when_one_was_added(tmp_path, monkeypatch):
     (tmp_path / "assets" / "drivers").mkdir(parents=True)
     (tmp_path / "assets" / "drivers" / "VER.png").write_bytes(b"x")
+    (tmp_path / "assets" / "drivers" / "NOR.png").write_bytes(b"x")
+    credits = {"VER": {"author": "A. Person", "license": "CC BY-SA 4.0", "source": "https://commons.wikimedia.org/wiki/File:V.jpg"},
+               "NOR": {"author": "B. Person", "license": "", "source": "https://commons.wikimedia.org/wiki/File:N.jpg"}}
+    (tmp_path / "assets" / "drivers" / "credits.json").write_text(json.dumps(credits))
     monkeypatch.setattr("f1pred.report.REPORTS", tmp_path)
-    page = render(_payload(drivers=[_driver("VER", "Red Bull", 0.8), _driver("NOR", "McLaren", 0.6)]))
+    p = _payload(drivers=[_driver("VER", "Red Bull", 0.8), _driver("NOR", "McLaren", 0.6)])
+    page = render(p)
     assert '<img class="face" src="assets/drivers/VER.png"' in page and 'card p1 has-face"' in page
-    assert "drivers/NOR" not in page and 'card p2"' in page
+    assert "drivers/NOR" not in page and 'card p2"' in page  # no licence on file, so no photo
+    credit = ('<a href="https://commons.wikimedia.org/wiki/File:V.jpg" target="_blank" rel="noopener noreferrer">VER</a> by A. Person, '
+              '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>')
+    assert credit in page and credit in render_index([p]) and "B. Person" not in page
+    assert 'class="photos"' not in render(_payload(drivers=[_driver("NOR", "McLaren", 0.6)]))
