@@ -57,7 +57,7 @@ Honest evaluation. Features for race N use only information known before race N.
   - It never predicts after the race start. A race that started with no prediction is reported as missed and can only be added as a backtest.
   - If qualifying is still not on Jolpica 3 hours after it started, it tells the owner to run `predict` with `--grid` by hand.
   - It can run only those five commands, with whole-number arguments, and no git command. After 3 failed runs of a step for a race it stops trying.
-  - It reports with a macOS banner and writes `data/auto_status.txt` with the commit commands to run by hand. Its state is in `data/auto_state.json` and its log in `data/auto.log`; all three are git-ignored.
+  - It reports with a macOS alert window, which needs no notification permission, and writes `data/auto_status.txt` with the commit commands to run by hand. Its state is in `data/auto_state.json` and its log in `data/auto.log`; all three are git-ignored.
   - Still by hand: `--start-grid` for penalties, every commit and push, and after a race `evaluate`, `lab.fetch`, `lab.season` and the next race's `lab.strategy`.
 
 ## Brand Commitments

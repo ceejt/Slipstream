@@ -16,7 +16,7 @@ Podium prediction with one rule: a feature for race N only uses what is known be
     .venv/bin/pytest                                       # leakage tests
 
 ## Automatic job (macOS)
-`python -m f1pred.auto` checks the calendar and, in a race weekend, makes the prediction after qualifying and adds the result after the race. It shows a banner and writes `data/auto_status.txt` with the commit commands. It never commits or pushes.
+`python -m f1pred.auto` checks the calendar and, in a race weekend, makes the prediction after qualifying and adds the result after the race. It opens an alert window and writes `data/auto_status.txt` with the commit commands. It never commits or pushes.
 
 Install, from the project folder (runs every 20 minutes while the Mac is awake):
 
@@ -43,7 +43,7 @@ Check that you are allowed to use each file. The intro is skipped for reduced mo
 - `src/f1pred/fetch.py`: Jolpica to `data/raw/` (results, qualifying). No weather or safety car data yet
 - `src/f1pred/predict.py`, `report.py`: one-race prediction as JSON and a static HTML page, plus the index
 - `src/f1pred/outcome.py`: adds the real result to a saved prediction (`data/outcomes/`) and rebuilds its page; the prediction file is never changed
-- `src/f1pred/auto.py`: the automatic race weekend job (decision, allowlisted steps, state, banner); `launchd/` holds its schedule
+- `src/f1pred/auto.py`: the automatic race weekend job (decision, allowlisted steps, state, alert); `launchd/` holds its schedule
 - `src/f1pred/features.py`: leak-free rolling driver, team and circuit features
 - `src/f1pred/evaluate.py`: walk-forward split, baselines, metrics
 - `data/circuits.csv`: static circuit attributes (starter rows, verify values, add the rest). The `location` must match Jolpica's locality, for example `Spa`

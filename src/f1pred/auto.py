@@ -7,7 +7,7 @@ and which step is due), the runner for the steps and the run itself. A step is o
 fixed list of `python -m f1pred...` commands; nothing else can be run. What has been done
 for each race is kept in data/auto_state.json. All times are UTC.
 
-The job tells the user what happened with a macOS banner and writes the details, with the
+The job tells the user what happened with a macOS alert window and writes the details, with the
 commit commands to run by hand, to data/auto_status.txt. It commits and pushes nothing.
 
 Usage: python -m f1pred.auto
@@ -333,13 +333,20 @@ def report(event, now):
     return banner, "\n".join(head + body + notes) + "\n"
 
 
+ALERT_SECONDS = 12 * 3600   # the alert window closes by itself after this, if nobody clicks OK
+
+
 def notify(text, title="Slipstream"):
-    """Show a macOS banner. Returns False if it could not be shown; never raises.
-    The text is passed as an argument, so nothing in it is read as script."""
-    script = ["-e", "on run argv", "-e", "display notification (item 1 of argv) with title (item 2 of argv)",
+    """Show a macOS alert window and return without waiting for OK. Returns False if it could not
+    be started; never raises. An alert window needs no notification permission, unlike a banner,
+    which macOS dropped for this job. The text is passed as an argument, so nothing in it is read as script."""
+    script = ["-e", "on run argv",
+              "-e", f"display alert (item 2 of argv) message (item 1 of argv) giving up after {ALERT_SECONDS}",
               "-e", "end run"]
     try:
-        return subprocess.run(["osascript", *script, text, title], capture_output=True, timeout=15).returncode == 0
+        subprocess.Popen(["osascript", *script, text, title], stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        return True
     except (OSError, subprocess.SubprocessError):
         return False
 
@@ -363,7 +370,7 @@ def main():
         banner, status = report(event, now)
         STATUS.write_text(status)
         shown = notify(banner)
-        print(banner if shown else f"{banner} (banner not shown; see {STATUS.name})")
+        print(banner if shown else f"{banner} (alert not shown; see {STATUS.name})")
 
 
 if __name__ == "__main__":

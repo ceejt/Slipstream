@@ -239,17 +239,17 @@ def test_no_report_puts_a_contributor_line_in_a_commit():
         assert "Co-Authored" not in status and "Claude" not in status
 
 
-def test_banner_text_is_passed_as_an_argument_and_a_failure_is_swallowed(monkeypatch):
+def test_alert_text_is_passed_as_an_argument_and_a_failure_is_swallowed(monkeypatch):
     seen = []
-
-    class Done:
-        returncode = 0
-    monkeypatch.setattr(auto.subprocess, "run", lambda cmd, **k: seen.append(cmd) or Done())
+    monkeypatch.setattr(auto.subprocess, "Popen", lambda cmd, **k: seen.append((cmd, k)))
     text = 'say "hi" & do shell script'
-    assert auto.notify(text) and seen[0][0] == "osascript" and seen[0][-2:] == [text, "Slipstream"]
-    assert text not in " ".join(seen[0][:-2])
+    assert auto.notify(text)
+    cmd, kwargs = seen[0]
+    assert cmd[0] == "osascript" and cmd[-2:] == [text, "Slipstream"]
+    assert text not in " ".join(cmd[:-2]) and "display alert" in " ".join(cmd)
+    assert kwargs["start_new_session"]   # the job does not wait for OK
 
     def broken(cmd, **k):
         raise FileNotFoundError("osascript")
-    monkeypatch.setattr(auto.subprocess, "run", broken)
+    monkeypatch.setattr(auto.subprocess, "Popen", broken)
     assert auto.notify("x") is False
