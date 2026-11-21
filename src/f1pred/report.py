@@ -98,6 +98,43 @@ background:linear-gradient(200deg,var(--accent,var(--surface-2)) 0%,var(--card-b
 .outcome{margin:0;display:flex;align-items:center;gap:8px;font:600 16px/20px var(--body)}
 .why{margin:0;padding:0;list-style:none;font:600 14px/20px var(--body)}
 .why b{display:inline-block;width:12px;font-weight:400}
+.why li{display:grid;grid-template-columns:12px minmax(0,1fr) 25%;align-items:center;gap:0 8px}
+.why li b{width:auto}
+.rbar{height:6px;border-radius:3px;background:color-mix(in srgb,currentColor 18%,transparent)}
+.rbar i{display:block;height:100%;width:var(--w);border-radius:3px;background:currentColor;
+animation:grow .5s cubic-bezier(.3,0,0,1) both;animation-delay:calc(.25s + var(--i)*90ms)}
+.why .down .rbar i{background:none;box-shadow:inset 0 0 0 1.5px currentColor}
+.flow{margin:16px 0 24px}
+.flow ol{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+@media(min-width:735px){.flow ol{grid-template-columns:1fr 24px 1.25fr 24px 1fr 24px 1fr;align-items:stretch;gap:0}}
+.flow .st{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:12px;margin:0;
+display:flex;flex-direction:column;justify-content:center;gap:2px}
+.flow .st b{font:700 14px/18px var(--body)}
+.flow .st span{font:400 12px/16px var(--body);color:var(--muted)}
+.flow .st.out{border-color:var(--red)}
+.flow .st.out b{color:var(--red)}
+.flow .pair{display:grid;gap:8px;padding:0;background:none;border:0;justify-content:stretch;grid-auto-rows:1fr;grid-template-columns:1fr 1fr}
+@media(min-width:735px){.flow .pair{grid-template-columns:none}}
+.flow .pair div{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.flow .arr{display:flex;align-items:center;justify-content:center;margin:0;color:var(--muted)}
+.flow .arr i{display:block;width:2px;height:16px;background:currentColor}
+@media(min-width:735px){.flow .arr i{width:100%;height:2px}}
+.flow .arr svg{display:block;width:100%;height:24px;overflow:visible}
+.flow .arr svg path{fill:none;stroke:currentColor;stroke-width:2;vector-effect:non-scaling-stroke}
+.flow .arr .d{display:none}
+@media(min-width:735px){.flow .arr .m{display:none}.flow .arr .d{display:block;height:100%}}
+.flow figcaption{font:400 14px/20px var(--body);color:var(--muted);margin-top:8px}
+.cmp{display:grid;gap:24px;margin:16px 0}
+@media(min-width:735px){.cmp{grid-template-columns:1fr 1fr}}
+.cmp h4{font:600 14px/20px var(--body);color:var(--muted);margin:0 0 8px}
+.cmp dl{margin:0;display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;align-items:center}
+.cmp dt,.cmp dd{margin:0;font:400 14px/20px var(--body)}
+.cmp dd.v{font-variant-numeric:tabular-nums;text-align:right}
+.cmp .cbar{display:block;min-width:60px;height:10px;border-radius:5px;background:var(--surface-2)}
+.cmp .cbar i{display:block;height:100%;width:var(--w);border-radius:5px;background:var(--muted)}
+.cmp .ours dt,.cmp .ours dd{font-weight:700;color:var(--text)}
+.cmp .ours .cbar i{background:var(--red)}
+.cmp div.r{display:contents}
 .mark{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:4px;
 font:500 12px/18px var(--display);letter-spacing:.5px;text-transform:uppercase}
 .mark.miss{border-style:dashed}
@@ -224,7 +261,18 @@ html{scroll-behavior:smooth}
 .tabbed [data-panel]:not([hidden]){animation:panel-in .25s cubic-bezier(0,0,.2,1)}
 @keyframes vt-out{to{opacity:0;transform:translateY(-4px)}}
 @keyframes vt-in{from{opacity:0;transform:translateY(8px)}}
-@keyframes panel-in{from{opacity:0;transform:translateY(6px)}}}
+@keyframes panel-in{from{opacity:0;transform:translateY(6px)}}
+@supports(animation-timeline:view()){
+.flow .st,.flow .pair div{animation:step-in linear both;animation-timeline:view();animation-range:entry 0% cover 30%}
+.flow .pair{animation:none}
+.flow li:nth-child(3) div:first-child{animation-range:entry 5% cover 33%}
+.flow li:nth-child(3) div:last-child{animation-range:entry 10% cover 36%}
+.flow li:nth-child(5){animation-range:entry 15% cover 39%}
+.flow li:nth-child(7){animation-range:entry 20% cover 42%}
+.flow .arr i,.flow .arr svg{animation:draw linear both;animation-timeline:view();animation-range:entry 5% cover 35%}
+.cmp .cbar i{animation:grow linear both;animation-timeline:view();animation-range:entry 0% cover 35%}}
+@keyframes step-in{from{opacity:.15;transform:translateY(8px)}}
+@keyframes draw{from{transform:scale(0)}}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 """
 
@@ -380,11 +428,68 @@ def _reason_text(feature, value):
 
 
 def _reasons(rs):
+    """The facts that moved a pick most, each with a bar: its push relative to the strongest one.
+    A filled bar raised the chance; an outlined bar lowered it."""
+    top = max((abs(r["shap"]) for r in rs), default=0) or 1
     items = []
-    for r in rs:
-        sign = "+" if r["shap"] > 0 else "-"
-        items.append(f'<li><b>{sign}</b> {_reason_text(r["feature"], r["value"])}</li>')
+    for i, r in enumerate(rs):
+        up = r["shap"] > 0
+        items.append(f'<li class="{"up" if up else "down"}"><b>{"+" if up else "-"}</b><span>{_reason_text(r["feature"], r["value"])}</span>'
+                     f'<span class="rbar" aria-hidden="true"><i style="--w:{max(abs(r["shap"]) / top, .04) * 100:.0f}%;--i:{i}"></i></span></li>')
     return "<ul class='why' aria-label='Reasons, strongest first'>" + "".join(items) + "</ul>"
+
+
+def _flow(model):
+    """How one podium chance is built, as a row of steps. The steps light up as they scroll into view."""
+    facts = '<li class="st"><b>Facts known before the race</b><span>Grid, qualifying gap, recent form, team, circuit</span></li>'
+    arrow = '<li class="arr" aria-hidden="true"><i></i></li>'
+    if model == "blend":
+        # fork: the facts go to both models; merge: both models feed the average. The two models never feed each other.
+        def link(desktop, phone, cls):
+            return (f'<li class="arr {cls}" aria-hidden="true">'
+                    f'<svg class="d" viewBox="0 0 24 100" preserveAspectRatio="none"><path d="{desktop}"/></svg>'
+                    f'<svg class="m" viewBox="0 0 100 24" preserveAspectRatio="none"><path d="{phone}"/></svg></li>')
+        fork = link("M0 50H12M12 25V75M12 25H24M12 75H24", "M50 0V12M25 12H75M25 12V24M75 12V24", "fork")
+        merge = link("M0 25H12M0 75H12M12 25V75M12 50H24", "M25 0V12M75 0V12M25 12H75M50 12V24", "merge")
+        middle = ('<li class="st pair"><div><b>A simple formula</b><span>Logistic regression</span></div>'
+                  '<div><b>Small decision trees</b><span>XGBoost</span></div></li>')
+        mix = '<li class="st"><b>Average of the two</b><span>Each counts half</span></li>'
+    else:
+        middle = '<li class="st"><b>Small decision trees</b><span>XGBoost</span></li>'
+        mix = '<li class="st"><b>One combined score</b><span>The trees add up their nudges</span></li>'
+    out = '<li class="st out"><b>Podium chance</b><span>One number per driver, 0% to 100%</span></li>'
+    if model != "blend":
+        fork = merge = arrow
+    return (f'<figure class="flow" aria-label="How one podium chance is built"><ol>{facts}{fork}{middle}{merge}{mix}{arrow}{out}</ol>'
+            '<figcaption>The same steps run for every driver. Nothing from the race itself goes in.</figcaption></figure>')
+
+
+def _compare_chart(ev, model="blend"):
+    """Bars for the model and the simple guesses on two measures, from the saved evaluation.
+    Bars start at zero, so small gaps look small."""
+    if _beats(ev, model) is None:
+        return ""
+    m = ev["models"]
+    if model == "blend" and "blend" in m:
+        rows = (("grid order", "First three on the grid"), ("grid logistic", "Grid-only formula"),
+                ("xgboost", "XGBoost alone"), ("blend", "Slipstream model"))
+        ours = "blend"
+    else:
+        rows = (("grid order", "First three on the grid"), ("grid logistic", "Grid-only formula"), ("xgboost", "Slipstream model"))
+        ours = "xgboost"
+
+    def block(title, key, fmt):
+        vals = [(k, label, m[k][key]) for k, label in rows if m[k].get(key) is not None]
+        top = max(v for _, _, v in vals) or 1
+        body = "".join(f'<div class="r{" ours" if k == ours else ""}"><dt>{label}</dt>'
+                       f'<dd><span class="cbar" aria-hidden="true"><i style="--w:{v / top * 100:.1f}%"></i></span></dd>'
+                       f'<dd class="v">{fmt(v)}</dd></div>' for k, label, v in vals)
+        return f'<div><h4>{title}</h4><dl>{body}</dl></div>'
+
+    return ('<div class="cmp">'
+            + block("Top-3 overlap, higher is better", "top3_overlap", lambda v: f"{v * 100:.1f}%")
+            + block("Brier score, lower is better", "brier", lambda v: f"{v:.3f}")
+            + f'</div><p>The bars are close to the same length. Over {ev["races"]} races, gaps this small could still be luck.</p>')
 
 
 def _ours(ev, model="blend"):
@@ -480,16 +585,18 @@ def _method_html(ev, model="xgboost", has_win=False):
 <p>Nothing from the race itself is ever used. That is the one rule the project is built around: a prediction for a race only uses what was known before that race.</p>
 </div></div>
 <div class="mrow"><h3>How it turns facts into a percentage</h3><div class="mtext">
+{_flow(model)}
 {MODEL_TEXT.get(model, MODEL_TEXT["xgboost"])}
 <p>To learn, the model looks at every earlier race. For each driver it sees the facts above and whether they finished on the podium (the top three). Over time it learns which combinations of facts usually lead to a podium. For a new race, it gives each driver a number from 0% to 100%: how likely that driver is to finish in the top three, judging by how similar drivers did before. It is not a simulation of the race.</p>
 <p>Each driver gets their own number, and a podium has three places, so across the whole field the numbers add up to around 300%, not 100%. A driver at 80% is not "80% to win". It means the model thinks a podium is very likely.</p>
 {win_text}</div></div>
 <div class="mrow"><h3>Why each pick has reasons</h3><div class="mtext">
-<p>Under each of the three picks you see the three facts that moved the number most. {REASONS_TEXT.get(model, REASONS_TEXT["xgboost"])} A plus sign means the fact raised the driver's chance. A minus sign means it lowered it. The strongest comes first.</p>
+<p>Under each of the three picks you see the three facts that moved the number most. {REASONS_TEXT.get(model, REASONS_TEXT["xgboost"])} A plus sign and a filled bar mean the fact raised the driver's chance. A minus sign and an outlined bar mean it lowered it. The strongest comes first, and the bar shows how hard each fact pushed compared with the strongest.</p>
 </div></div>
 <div class="mrow"><h3>How it is checked</h3><div class="mtext">
 <p>A model can look clever by accident if it has already seen the answers. So every race is tested like this: pretend it is the day before that race, teach the model only with earlier races, make the predictions, then compare them with what really happened. This is called walk-forward testing, and it is repeated for every race after the first five.</p>
 <p>The model is also compared with two simple guesses. One says the first three on the grid will finish on the podium. The other is a basic formula that only looks at starting position. If the model cannot beat these, it has not added anything useful.</p>
+{_compare_chart(ev, model)}
 {_method_table(ev, model)}
 <p>Top-3 overlap is the share of the real podium drivers that were in the model's top three picks. Exact podium counts the races where all three picks were right. Brier score and log loss judge the percentages themselves. For both of those, lower is better.</p>
 {verdict}</div></div>
