@@ -1,4 +1,5 @@
 """Render a prediction payload as one self-contained HTML page (no external assets)."""
+import base64
 import json
 import re
 import sys
@@ -86,6 +87,11 @@ font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px}
 clip-path:polygon(0 32px,56px 0,100% 0,100% 100%,0 100%)}
 .cbody{flex:1;display:flex;flex-direction:column;gap:8px;padding:32px 16px 16px;
 background:linear-gradient(200deg,var(--accent,var(--surface-2)) 0%,var(--card-bg,var(--surface-2)) 45%)}
+.flag{height:.6em;width:auto;margin-left:.4em;vertical-align:.1em;border-radius:2px;box-shadow:0 0 0 1px color-mix(in srgb,var(--text) 20%,transparent)}
+.cbody{position:relative}.cbody>:not(.face){position:relative}
+.face{position:absolute;top:12px;right:0;height:150px;width:auto;max-width:48%;object-fit:contain;object-position:right bottom;
+pointer-events:none;-webkit-mask-image:linear-gradient(#000 65%,transparent);mask-image:linear-gradient(#000 65%,transparent)}
+@media(min-width:735px){.face{height:200px;max-width:58%}}
 .cname{background:var(--accent,var(--surface-2));color:var(--on-accent,var(--text));padding:12px 16px}
 .pick{font:900 64px/64px var(--display);text-transform:uppercase;margin:0;color:var(--on-accent,var(--text))}
 .first{font:600 14px/16px var(--body);text-transform:uppercase;letter-spacing:.5px;margin:0}
@@ -319,6 +325,30 @@ def _asset(stem, exts):
         if (REPORTS / "assets" / f"{stem}.{ext}").exists():
             return f"assets/{stem}.{ext}"
     return None
+
+
+# Country flag per Grand Prix, from reports/assets/flags/<iso>.png (public domain flag images).
+FLAGS = {"Bahrain": "bh", "Saudi Arabian": "sa", "Australian": "au", "Japanese": "jp", "Chinese": "cn",
+         "Miami": "us", "Emilia Romagna": "it", "Monaco": "mc", "Spanish": "es", "Barcelona-Catalunya": "es",
+         "Canadian": "ca", "Austrian": "at", "British": "gb", "Belgian": "be", "Hungarian": "hu", "Dutch": "nl",
+         "Italian": "it", "Azerbaijan": "az", "Singapore": "sg", "United States": "us", "Mexico City": "mx",
+         "São Paulo": "br", "Brazilian": "br", "Las Vegas": "us", "Qatar": "qa", "Abu Dhabi": "ae", "Madrid": "es"}
+
+
+def _flag(event):
+    """Small flag image after a race name, embedded so pages stay one file; empty if the country is unknown."""
+    code = FLAGS.get(re.sub(r"\s+Grand Prix$", "", str(event)))
+    path = REPORTS / "assets" / "flags" / f"{code}.png"
+    if not code or not path.exists():
+        return ""
+    data = base64.b64encode(path.read_bytes()).decode()
+    return f'<img class="flag" src="data:image/png;base64,{data}" alt="" aria-hidden="true">'
+
+
+def _face(code):
+    """Driver photo from reports/assets/drivers/<CODE>.png|webp, if one was added; empty otherwise."""
+    url = _asset(f"drivers/{code}", ("png", "webp"))
+    return f'<img class="face" src="{url}" alt="" aria-hidden="true" loading="lazy">' if url else ""
 
 
 def _intro():
@@ -729,8 +759,9 @@ def render_body(p: dict, evaluation=None, names=None) -> str:
             mark = '<span class="mark">Hit</span>' if _is_hit(d) else '<span class="mark miss">Miss</span>'
             out = f'<p class="outcome">{mark} {text}</p>'
         win = f'<p class="sub win">win chance {d["p_win"] * 100:.1f}%</p>' if d.get("p_win") is not None else ""
+        face = _face(d["driver"])
         cards += (
-            f'<article class="card p{i + 1}"{_card_style(d["team"])}><div class="cbody"><p class="pick">P{i + 1}</p>'
+            f'<article class="card p{i + 1}{" has-face" if face else ""}"{_card_style(d["team"])}><div class="cbody">{face}<p class="pick">P{i + 1}</p>'
             f'<p class="team">{escape(str(d["team"]))} · {grid}</p>'
             f'<div class="score"><p class="pct">{d["p_podium"] * 100:.1f}%</p><p class="sub">podium probability</p>{win}</div>'
             f'{out}{_reasons(d["reasons"])}</div>'
@@ -796,7 +827,7 @@ def render(p: dict, evaluation=None, names=None) -> str:
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Slipstream {p['year']} {escape(p['event'])}</title>{FAVICON}{FONT_LINK}{ANALYTICS}<style>{CSS}</style></head><body><main>
 {_top(True)}
-<h1>{escape(p['event'])}</h1>
+<h1>{escape(p['event'])}{_flag(p['event'])}</h1>
 {render_body(p, evaluation, names)}
 {_method_html(evaluation, p.get('model', 'xgboost'), any(d.get('p_win') is not None for d in p['drivers']))}
 {CREDIT}
@@ -849,7 +880,7 @@ def _soon_row(n):
     """A placeholder for the next race: no prediction exists until qualifying is done."""
     when = f'Prediction after qualifying on {_short_date(n["quali_date"])}' if n.get("quali_date") else "Prediction after qualifying"
     rain = f'<p class="meta2">{_rain_text(n.get("forecast"))}</p>' if _rain_text(n.get("forecast")) else ""
-    return (f'<li class="soon"><span><span class="ev">{escape(n["event"])}</span><p class="meta2">{when}</p>{rain}</span>'
+    return (f'<li class="soon"><span><span class="ev">{escape(n["event"])}{_flag(n["event"])}</span><p class="meta2">{when}</p>{rain}</span>'
             f'<span class="when"><span class="when-top"><span class="dot wait" role="img" aria-label="waiting for qualifying" '
             f'title="waiting for qualifying"></span>Round {n["round"]}, {n["year"]}</span><br>Race on {_short_date(n["date"])}</span></li>')
 
@@ -869,7 +900,7 @@ def render_index(items, evaluation=None, names=None, next_race=None):
         slug = f'{p["year"]}-R{p["round"]:02d}'
         key = "results" if backtest else "upcoming"
         counts[key] += 1
-        rows[key] += (f'<li><details id="{slug}"><summary><span><span class="ev">{escape(p["event"])}</span>'
+        rows[key] += (f'<li><details id="{slug}"><summary><span><span class="ev">{escape(p["event"])}{_flag(p["event"])}</span>'
                  f'<p class="meta2">{detail}</p></span><span class="when"><span class="when-top">{_status_dot(p)}Round {p["round"]}, {p["year"]}</span><br>{status}</span></summary>'
                  f'<div class="rbody">{render_body(p, evaluation, names)}'
                  f'<a class="open" href="{p["year"]}_R{p["round"]:02d}.html">Open as its own page</a></div></details></li>')

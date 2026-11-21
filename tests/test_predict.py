@@ -274,3 +274,23 @@ def test_forecast_is_shown_on_the_next_race_row_and_the_race_page_but_only_when_
     page = render(dict(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]), forecast=f))
     assert "Forecast rain chance 70%" in page
     assert "Forecast rain chance" not in render(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]))
+
+
+def test_race_title_gets_an_embedded_flag_only_for_a_known_country(tmp_path, monkeypatch):
+    (tmp_path / "assets" / "flags").mkdir(parents=True)
+    (tmp_path / "assets" / "flags" / "qa.png").write_bytes(b"png")
+    monkeypatch.setattr("f1pred.report.REPORTS", tmp_path)
+    page = render(dict(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]), event="Qatar Grand Prix"))
+    assert '<h1>Qatar Grand Prix<img class="flag" src="data:image/png;base64,cG5n"' in page
+    assert 'class="flag"' not in render(dict(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]), event="Mars Grand Prix"))
+    nxt = {"year": 2026, "round": 22, "event": "Qatar Grand Prix", "date": "2026-11-29", "quali_date": "2026-11-28"}
+    assert 'Qatar Grand Prix<img class="flag"' in render_index([], next_race=nxt)
+
+
+def test_pick_cards_show_a_driver_photo_only_when_one_was_added(tmp_path, monkeypatch):
+    (tmp_path / "assets" / "drivers").mkdir(parents=True)
+    (tmp_path / "assets" / "drivers" / "VER.png").write_bytes(b"x")
+    monkeypatch.setattr("f1pred.report.REPORTS", tmp_path)
+    page = render(_payload(drivers=[_driver("VER", "Red Bull", 0.8), _driver("NOR", "McLaren", 0.6)]))
+    assert '<img class="face" src="assets/drivers/VER.png"' in page and 'card p1 has-face"' in page
+    assert "drivers/NOR" not in page and 'card p2"' in page
