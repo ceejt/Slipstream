@@ -96,7 +96,7 @@ def build(ch, st):
 
 CSS = """
 .subnav{position:sticky;top:0;z-index:5;display:flex;gap:4px;flex-wrap:wrap;background:var(--bg);border-bottom:1px solid var(--rule);margin:0 0 32px}
-.subnav a{color:var(--muted);text-decoration:none;font:600 14px/20px var(--body);padding:12px;min-height:44px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.subnav a{color:var(--muted);text-decoration:none;font:600 14px/20px var(--body);padding:12px;min-height:44px;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .2s cubic-bezier(.4,0,.2,1),border-color .25s cubic-bezier(.4,0,.2,1)}
 .subnav a:hover{color:var(--text)}
 .subnav a[aria-current=true]{color:var(--text);border-bottom-color:#E10600}
 .sec{scroll-margin-top:64px;margin:0 0 64px}
@@ -129,7 +129,7 @@ CSS = """
 .tile .c a{color:var(--text);text-underline-offset:3px;display:inline-block;padding:12px 0;margin:-12px 0}
 .panel-lab{background:var(--surface);border:1px solid var(--rule);padding:16px;margin:0 0 16px}
 .seg{display:inline-flex;border:1px solid var(--rule);margin:0 8px 16px 0}
-.seg button,.chip{background:none;border:0;color:var(--muted);font:600 14px/20px var(--body);padding:10px 16px;min-height:44px;cursor:pointer}
+.seg button,.chip{background:none;border:0;color:var(--muted);font:600 14px/20px var(--body);padding:10px 16px;min-height:44px;cursor:pointer;transition:color .2s cubic-bezier(.4,0,.2,1),background-color .2s cubic-bezier(.4,0,.2,1)}
 .seg button+button{border-left:1px solid var(--rule)}
 .seg button[aria-pressed=true]{background:var(--surface-2);color:var(--text)}
 .seg button:hover,.chip:hover{color:var(--text)}

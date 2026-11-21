@@ -54,11 +54,15 @@ padding-bottom:12px;border-bottom:1px solid var(--rule)}
 .top{flex-wrap:wrap}
 .topr{display:flex;align-items:center;gap:16px;margin-left:auto}
 .nav{display:flex;gap:4px}
-.nav a{color:var(--muted);text-decoration:none;font:600 14px/20px var(--body);padding:12px;min-height:44px;box-sizing:border-box;
-border-bottom:2px solid transparent;margin-bottom:-14px}
+.nav a{position:relative;color:var(--muted);text-decoration:none;font:600 14px/20px var(--body);padding:12px;min-height:44px;box-sizing:border-box;
+border-bottom:2px solid transparent;margin-bottom:-14px;transition:color .2s cubic-bezier(.4,0,.2,1)}
 .nav a:hover{color:var(--text)}
+.nav a::after,.nav .ind{content:"";position:absolute;left:0;right:0;bottom:-2px;height:2px}
+.nav a::after{background:var(--muted);transform:scaleX(0);transition:transform .25s cubic-bezier(.3,0,0,1)}
+.nav a:not([aria-current]):hover::after{transform:scaleX(1)}
+.nav .ind{background:#E10600}
 @media(max-width:480px){.nav a{padding:12px 8px}.topr{gap:8px}}
-.nav a[aria-current=page]{color:var(--text);border-bottom-color:#E10600}
+.nav a[aria-current=page]{color:var(--text)}
 .back{color:var(--text);text-decoration:none;border:1px solid var(--rule);border-radius:4px;padding:4px 12px;
 font:600 14px/20px var(--body);transition:background-color .15s cubic-bezier(.4,0,.2,1)}
 .back:hover{background:var(--surface-2)}
@@ -133,10 +137,14 @@ animation:grow .3s cubic-bezier(.4,0,.2,1) both;animation-delay:calc(var(--i)*30
 font:900 17px/20px var(--body);transition:background-position .8s cubic-bezier(.4,0,.2,1);
 filter:drop-shadow(0 1px 0 var(--chrome-edge))}
 .made a:not(.gh):hover,.made a:not(.gh):focus-visible{background-position:-9px 0}}
-.tabs{display:flex;gap:24px;border-bottom:1px solid var(--rule);margin:0 0 16px}
+.tabs{position:relative;display:flex;gap:24px;border-bottom:1px solid var(--rule);margin:0 0 16px}
+.tabs .tind{position:absolute;left:0;bottom:-1px;height:2px;width:0;background:var(--text);pointer-events:none}
+.tabs.moving .tind{transition:transform .3s cubic-bezier(.3,0,0,1),width .3s cubic-bezier(.3,0,0,1)}
+.tabbed .tab[aria-selected=true]{border-bottom-color:transparent}
 .tabs[hidden]{display:none}
 .tab{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:14px 0;cursor:pointer;
 color:var(--muted);font:500 12px/16px var(--display);text-transform:uppercase;letter-spacing:.5px}
+.tab{transition:color .2s cubic-bezier(.4,0,.2,1)}
 .tab:hover,.tab[aria-selected=true]{color:var(--text)}
 .tab[aria-selected=true]{border-bottom-color:var(--text)}
 .tab .n{margin-left:8px;font-variant-numeric:tabular-nums}
@@ -205,6 +213,18 @@ background:repeating-linear-gradient(90deg,var(--rule) 0 24px,transparent 24px 4
 font:600 14px/24px var(--body);transition:background-color .15s cubic-bezier(.4,0,.2,1)}
 .skip:hover{background:var(--surface-2)}
 @media(min-width:735px){.intro-title{font-size:56px;line-height:60px}.rig{left:calc(50% - 130px);width:260px}.rig .car{width:260px}.track{height:150px}}
+@media(prefers-reduced-motion:no-preference){
+@view-transition{navigation:auto}
+html{scroll-behavior:smooth}
+.top{view-transition-name:topbar}
+.nav .ind{view-transition-name:navind}
+::view-transition-old(root){animation:vt-out .16s cubic-bezier(.4,0,1,1) both}
+::view-transition-new(root){animation:vt-in .3s cubic-bezier(0,0,.2,1) .05s both}
+::view-transition-group(navind){animation-duration:.4s;animation-timing-function:cubic-bezier(.3,0,0,1)}
+.tabbed [data-panel]:not([hidden]){animation:panel-in .25s cubic-bezier(0,0,.2,1)}
+@keyframes vt-out{to{opacity:0;transform:translateY(-4px)}}
+@keyframes vt-in{from{opacity:0;transform:translateY(8px)}}
+@keyframes panel-in{from{opacity:0;transform:translateY(6px)}}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 """
 
@@ -283,8 +303,9 @@ NAV = (("predictor", "Podium predictor", "index.html"), ("lab", "Race lab", "lab
 def _top(back=False, current="predictor", root=""):
     """Top bar: wordmark, the two sections, and on race pages a button back to the index.
     root is the path back to reports/ ("../" from inside reports/lab/)."""
-    links = "".join(f'<a href="{root}{href}"{" aria-current=page" if key == current else ""}>{label}</a>'
-                    for key, label, href in NAV)
+    # the current link holds the red marker; between pages it slides to the new link (view transition)
+    links = "".join(f'<a href="{root}{href}" aria-current=page>{label}<i class="ind" aria-hidden="true"></i></a>' if key == current
+                    else f'<a href="{root}{href}">{label}</a>' for key, label, href in NAV)
     link = f'<a class="back" href="{root}index.html">Back to all races</a>' if back else ""
     return f'<header class="top">{BRAND}<div class="topr">{link}<nav class="nav" aria-label="Sections">{links}</nav></div></header>'
 
@@ -690,8 +711,13 @@ def _name_lookup():
 TABS_SCRIPT = """(function(){
 var t=document.getElementById("tabs");if(!t)return;
 var b=[].slice.call(t.querySelectorAll("[role=tab]")),p=[].slice.call(document.querySelectorAll("[data-panel]"));
+var m=document.createElement("i");m.className="tind";m.setAttribute("aria-hidden","true");t.appendChild(m);
+function mark(){var s=t.querySelector("[aria-selected=true]");if(s){m.style.width=s.offsetWidth+"px";m.style.transform="translateX("+s.offsetLeft+"px)"}}
 function show(n,focus){b.forEach(function(x){var on=x.dataset.tab===n;x.setAttribute("aria-selected",on);x.tabIndex=on?0:-1;if(on&&focus)x.focus()});
-p.forEach(function(x){x.hidden=x.dataset.panel!==n})}
+p.forEach(function(x){x.hidden=x.dataset.panel!==n});mark()}
+addEventListener("resize",function(){t.classList.remove("moving");mark()});
+if(document.fonts)document.fonts.ready.then(mark);
+t.addEventListener("click",function(){t.classList.add("moving")},true);t.addEventListener("keydown",function(){t.classList.add("moving")},true);
 document.documentElement.classList.add("tabbed");t.hidden=false;
 b.forEach(function(x,i){x.addEventListener("click",function(){show(x.dataset.tab)});
 x.addEventListener("keydown",function(e){var j=e.key==="ArrowRight"?i+1:e.key==="ArrowLeft"?i-1:-1;
