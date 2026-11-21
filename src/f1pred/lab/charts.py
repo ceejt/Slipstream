@@ -360,6 +360,8 @@ function rgb(a){return 'rgb('+a.map(Math.round).join(',')+')'}
 function lum(a){var f=a.map(function(v){v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*f[0]+.7152*f[1]+.0722*f[2]}
 function ink(a){return a&&(1.05/(lum(a)+.05)>(lum(a)+.05)/.058)?'fill:#FFFFFF;stroke:none':a?'fill:#15151E;stroke:none':''}
 var TYRE={SOFT:'#F2433B',MEDIUM:'#FFD12E',HARD:'#F2F2F0'};
+function ty(c){return '<span class="ty ty-'+c.toLowerCase()+'">'+cap(c)+'</span>'}
+function planHtml(p){return planText(p).replace(/Soft|Medium|Hard|Intermediate|Wet/g,function(w){return ty(w.toUpperCase())})}
 function planText(p){var t=p.tyres.map(cap).join(' then ');return p.stops+(p.stops==1?' stop, ':' stops, ')+t+', '+(p.stops==1?'stop on lap ':'stops on laps ')+p.laps.join(' and ')}
 function stints(L,rows){
   var W=420,lw=104,rh=30,H=rows.length*rh+6;
@@ -411,7 +413,7 @@ function heat(root){
   function pick(r,c,ui){var d=S.drivers[di],H=d.heat;sel={r:r,c:c,plan:{stops:1,laps:[H.laps[c]],tyres:H.orders[r]},m:{points:H.points[r][c],podium:H.podium[r][c],win:H.win[r][c],dist:H.dist[r][c]}};mark();info();if(ui)cellTip(r,c);else tip.style.display='none'}
   function cellTip(r,c){
     var d=S.drivers[di],H=d.heat,m=sel.m,b=svg.getBoundingClientRect(),bb=box.getBoundingClientRect(),k=b.width/G.W;
-    tip.innerHTML='<span class="t">'+cap(H.orders[r][0])+' then '+cap(H.orders[r][1])+', stop on lap '+H.laps[c]+'</span><span class="r"><span>Expected points</span><b>'+m.points.toFixed(1)+'</b></span><span class="r"><span>Podium</span><b>'+Math.round(m.podium*100)+'%</b></span><span class="r"><span>Win</span><b>'+Math.round(m.win*100)+'%</b></span>';
+    tip.innerHTML='<span class="t">'+ty(H.orders[r][0])+' then '+ty(H.orders[r][1])+', stop on lap '+H.laps[c]+'</span><span class="r"><span>Expected points</span><b>'+m.points.toFixed(1)+'</b></span><span class="r"><span>Podium</span><b>'+Math.round(m.podium*100)+'%</b></span><span class="r"><span>Win</span><b>'+Math.round(m.win*100)+'%</b></span>';
     tip.style.display='block';var w=tip.offsetWidth,hh=tip.offsetHeight,cx=b.left-bb.left+(G.ml+c*G.cw+G.cw/2)*k,cy=b.top-bb.top+(G.mt+r*G.rh)*k;
     var lx=Math.min(Math.max(4,cx-w/2),box.clientWidth-w-4),ty=cy-hh-8;if(ty<4)ty=cy+G.rh*k+8;
     tip.style.left=lx+'px';tip.style.top=ty+'px';
@@ -427,7 +429,7 @@ function heat(root){
     function tone(k){var a=toneA(k);return a?rgb(a):null}
     var fills={};
     H.orders.forEach(function(o,r){
-      el('text',{x:ml-10,y:mt+r*rh+rh/2+4,'text-anchor':'end','class':'rowlab'},svg,cap(o[0])+' then '+cap(o[1]));
+      var lab=el('text',{x:ml-10,y:mt+r*rh+rh/2+4,'text-anchor':'end','class':'rowlab'},svg);el('tspan',{'class':'ty-'+o[0].toLowerCase()},lab,cap(o[0]));el('tspan',{},lab,' then ');el('tspan',{'class':'ty-'+o[1].toLowerCase()},lab,cap(o[1]));
       H.laps.forEach(function(lap,c){
         var v=H.points[r][c],k=(v-r0.min)/Math.max(r0.max-r0.min,.01);
         var ta=toneA(k),tn=ta&&rgb(ta),a={x:ml+c*cw+.5,y:mt+r*rh+.5,width:cw-1,height:rh-1,'class':'cell'};if(tn)a.style='fill:'+tn;else a['fill-opacity']=(.22+.78*Math.pow(k,GAM)).toFixed(3);el('rect',a,svg);
@@ -455,7 +457,7 @@ function heat(root){
     var ol=h('ol',{'class':'planlist'});pw.appendChild(ol);
     ord.forEach(function(o,i){
       var li=h('li'),b=h('button',{type:'button','aria-pressed':'false','data-r':o.r,'data-c':o.c});
-      b.innerHTML='<span class="n">'+(i+1)+'</span><span>'+cap(H.orders[o.r][0])+' then '+cap(H.orders[o.r][1])+', stop on lap '+H.laps[o.c]+'</span><b>'+o.v.toFixed(1)+'</b><span class="pbar"><i style="width:'+Math.max(4,Math.round(100*(o.v-r0.min)/Math.max(r0.max-r0.min,.01)))+'%"></i></span>';
+      b.innerHTML='<span class="n">'+(i+1)+'</span><span>'+ty(H.orders[o.r][0])+' then '+ty(H.orders[o.r][1])+', stop on lap '+H.laps[o.c]+'</span><b>'+o.v.toFixed(1)+'</b><span class="pbar"><i style="width:'+Math.max(4,Math.round(100*(o.v-r0.min)/Math.max(r0.max-r0.min,.01)))+'%"></i></span>';
       b.onclick=function(){pick(o.r,o.c,false)};li.appendChild(b);ol.appendChild(li);
     });
     clear(quick);
@@ -470,10 +472,10 @@ function heat(root){
     if(sel.r===null){G.ring.setAttribute('width',0);G.ring.setAttribute('height',0)}else{G.ring.setAttribute('width',G.cw-2);G.ring.setAttribute('height',G.rh-2);G.ring.setAttribute('x',G.ml+sel.c*G.cw+1);G.ring.setAttribute('y',G.mt+sel.r*G.rh+1)}}
   function info(){
     var d=S.drivers[di],m=sel.m,t=d.typical,diff=m.points-t.points;
-    ccap.textContent=planText(sel.plan)+': '+m.points.toFixed(1)+' points, podium '+Math.round(m.podium*100)+'%, win '+Math.round(m.win*100)+'%.';
+    ccap.innerHTML=planHtml(sel.plan)+': '+m.points.toFixed(1)+' points, podium '+Math.round(m.podium*100)+'%, win '+Math.round(m.win*100)+'%.';
     clear(detail);detail.className='detail c-'+d.driver;
     var a=h('div'),b=h('div');detail.appendChild(a);detail.appendChild(b);
-    a.appendChild(h('div',{'class':'dtitle'},planText(sel.plan)));
+    a.appendChild(h('div',{'class':'dtitle'},planHtml(sel.plan)));
     a.appendChild(h('div',{'class':'dstats'},'<span>Expected points <b>'+m.points.toFixed(1)+'</b></span><span>Against typical <b>'+(diff>=0?'+':'')+diff.toFixed(1)+'</b></span><span>Podium <b>'+Math.round(m.podium*100)+'%</b></span><span>Win <b>'+Math.round(m.win*100)+'%</b></span>'));
     a.appendChild(h('div',{'class':'dstats'},'Where the driver finishes, percent. The white line marks the typical plan.'));
     a.appendChild(dist(m.dist,t.dist));
@@ -481,7 +483,7 @@ function heat(root){
     var shown=planText(sel.plan),same=[];rows=rows.filter(function(r,i){if(i==0||planText(r.plan)!=shown)return true;same.push(r.label=='Best overall'?'best':r.label.toLowerCase());return false});
     if(same.length)rows[0].label='Selected, '+same.join(', ');
     b.appendChild(h('div',{'class':'dtitle'},'Tyre stints, '+S.laps+' laps'));
-    b.appendChild(h('div',{'class':'dstats'},'Letters are the tyre: S soft, M medium, H hard. Numbers are the stop laps.'));
+    b.appendChild(h('div',{'class':'dstats'},'<span>Letters are the tyre: S '+ty('SOFT').replace('>Soft<','>soft<')+', M '+ty('MEDIUM').replace('>Medium<','>medium<')+', H '+ty('HARD').replace('>Hard<','>hard<')+'. Numbers are the stop laps.</span>'));
     b.appendChild(stints(S.laps,rows));
   }
   function loc(e){var b=svg.getBoundingClientRect(),x=(e.clientX-b.left)*G.W/b.width,y=(e.clientY-b.top)*(parseFloat(svg.viewBox.baseVal.height))/b.height,c=Math.floor((x-G.ml)/G.cw),r=Math.floor((y-G.mt)/G.rh);return(c>=0&&c<G.nL&&r>=0&&r<G.nO)?[r,c]:null}

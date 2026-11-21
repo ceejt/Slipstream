@@ -1,4 +1,5 @@
 """The Race lab page (reports/lab/index.html), written from data/lab_evaluation.json."""
+import base64
 import json
 from html import escape
 
@@ -12,7 +13,48 @@ from .validate import LAB_EVALUATION
 BACKTEST = CHAMPIONSHIP.with_name("championship_backtest.json")
 STRATEGY_CHECK = STRATEGY.with_name("strategy_check.json")
 
+# Pirelli compound colours. The icon (or the dot, if an icon file is missing) shows the real colour;
+# the text uses a shade that is readable on the page.
+TYRE_COLOURS = {"SOFT": "#F2433B", "MEDIUM": "#FFD12E", "HARD": "#F2F2F0", "INTERMEDIATE": "#43B02A", "WET": "#0067AD"}
+
+
+def _tyre_icon_css():
+    """Tyre icons from reports/assets/tyres/<compound>.webp, embedded so the page stays one file.
+    A compound with no icon file keeps its coloured dot."""
+    css = ""
+    for key in TYRE_COLOURS:
+        f = REPORTS / "assets" / "tyres" / f"{key.lower()}.webp"
+        if f.exists():
+            data = base64.b64encode(f.read_bytes()).decode()
+            css += (f'.ty-{key.lower()}::before{{width:1.15em;height:1.15em;vertical-align:-.2em;box-shadow:none;'
+                    f'background:url(data:image/webp;base64,{data}) center/contain no-repeat}}\n')
+    return css
+
+
+def tyre(name, text=None):
+    """A tyre compound name in its colour, e.g. tyre("SOFT") or tyre("SOFT", "softs")."""
+    key = name.upper()
+    if key not in TYRE_COLOURS:
+        raise ValueError(f"unknown tyre compound {name!r}")
+    return f'<span class="ty ty-{key.lower()}">{escape(text or key.title())}</span>'
+
+
 LAB_CSS = """
+:root{--ty-soft:#FF6158;--ty-medium:#FFD12E;--ty-hard:#F2F2F0;--ty-intermediate:#4FC33A;--ty-wet:#3D9BE9}
+@media (prefers-color-scheme:light){:root{--ty-soft:#C8251C;--ty-medium:#8A6500;--ty-hard:#5A5A62;--ty-intermediate:#2A7A1C;--ty-wet:#0067AD}}
+.ty{font-weight:700;white-space:nowrap}
+.ty::before{content:"";display:inline-block;width:.55em;height:.55em;border-radius:50%;margin-right:.3em;vertical-align:.06em;background:var(--dot);box-shadow:0 0 0 1px var(--chrome-edge)}
+.ty-soft{color:var(--ty-soft);--dot:#F2433B}
+.ty-medium{color:var(--ty-medium);--dot:#FFD12E}
+.ty-hard{color:var(--ty-hard);--dot:#F2F2F0}
+.ty-hard::before{box-shadow:0 0 0 1px var(--muted)}
+.ty-intermediate{color:var(--ty-intermediate);--dot:#43B02A}
+.ty-wet{color:var(--ty-wet);--dot:#0067AD}
+svg .ty-soft{fill:var(--ty-soft)}
+svg .ty-medium{fill:var(--ty-medium)}
+svg .ty-hard{fill:var(--ty-hard)}
+svg .ty-intermediate{fill:var(--ty-intermediate)}
+svg .ty-wet{fill:var(--ty-wet)}
 .lab-grid{display:grid;gap:16px;margin:0 0 32px}
 @media(min-width:735px){.lab-grid{grid-template-columns:1fr 1fr}}
 .lab-grid .scroll{margin:0}
@@ -91,7 +133,7 @@ def _champ_check(bt):
 
 
 def _plan(x):
-    tyres = " then ".join(t.title() for t in x["tyres"])
+    tyres = " then ".join(tyre(t) for t in x["tyres"])
     laps = " and ".join(str(l) for l in x["laps"])
     return f'{x["stops"]} stop, {tyres}, stop on lap {laps}' if x["stops"] == 1 else f'{x["stops"]} stops, {tyres}, stops on laps {laps}'
 
@@ -140,8 +182,8 @@ def _strategy_notes(st):
     pct = lambda v: f"{v * 100:.0f}%"
     u = st["undercut"]["1.0"]
     return ('<ul class="notes">'
-            '<li><b>Why the soft tyre starts.</b> The fitted wear is nearly the same for the soft and the medium, so the faster soft tyre wins. '
-            'Real soft tyres fall off more sharply than straight-line wear shows, so the optimiser probably favours softs and long stints too much.</li>'
+            f'<li><b>Why the {tyre("SOFT", "soft")} tyre starts.</b> The fitted wear is nearly the same for the {tyre("SOFT", "soft")} and the {tyre("MEDIUM", "medium")}, so the faster {tyre("SOFT", "soft")} tyre wins. '
+            f'Real {tyre("SOFT", "soft")} tyres fall off more sharply than straight-line wear shows, so the optimiser probably favours {tyre("SOFT", "softs")} and long stints too much.</li>'
             f'<li><b>Undercut and overcut.</b> Two cars level on pace, one second apart, stopping on the same lap: the car behind finishes ahead {pct(u["0"])} of the time. '
             f'One lap earlier it is {pct(u["-1"])}, two laps earlier {pct(u["-2"])}, one lap later {pct(u["1"])}. '
             'The simulator has no tyre warm-up or traffic on rejoining, so it probably overstates the undercut and cannot show an overcut. The full table is under "For the data nerds".</li>'
@@ -161,7 +203,7 @@ def _tiles(ev, ch, st):
             (tyres, stops), = firsts
             lap = round(sum(d["best"][0]["laps"][0] for d in st["drivers"]) / len(st["drivers"]))
             tiles.append((f'Best plan, {st["event"]}', f'{stops} stop',
-                          " then ".join(t.title() for t in tyres) + f", first stop near lap {lap}, for the {len(st['drivers'])} fastest cars."))
+                          " then ".join(tyre(t) for t in tyres) + f", first stop near lap {lap}, for the {len(st['drivers'])} fastest cars."))
         else:
             tiles.append((f'Best plan, {st["event"]}', "Differs", "The best plan is not the same for each driver."))
     h = ev["holdout"]
@@ -176,7 +218,7 @@ def _tiles(ev, ch, st):
 def render(ev, ch=None, bt=None, st=None, chk=None):
     f = ev["fitted"]
     comp = _table("Fitted from earlier races", ("Tyre compound", "vs medium", "Wear per lap"),
-                  "".join(f'<tr><td>{k.title()}</td><td class="num">{f["compound_offset_s"][k]:+.2f} s</td>'
+                  "".join(f'<tr><td>{tyre(k)}</td><td class="num">{f["compound_offset_s"][k]:+.2f} s</td>'
                           f'<td class="num">{f["wear_s_per_lap"][k]:.3f} s</td></tr>' for k in ("SOFT", "MEDIUM", "HARD")))
     other = _table("Fitted from earlier races", ("Quantity", "Value"),
                    _rows([("Time lost in a pit stop", f'{f["pit_loss_s"]:.1f} s'),
@@ -219,7 +261,7 @@ def render(ev, ch=None, bt=None, st=None, chk=None):
 <details class="tables"><summary>For the data nerds</summary>{_strategy_tables(st)}</details></section>""" if st else ""
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Slipstream Race lab</title>{FAVICON.replace('href="favicon', 'href="../favicon')}{FONT_LINK}{ANALYTICS}<style>{CSS}{LAB_CSS}{charts.CSS}{team_css}</style></head><body><main>
+<title>Slipstream Race lab</title>{FAVICON.replace('href="favicon', 'href="../favicon')}{FONT_LINK}{ANALYTICS}<style>{CSS}{LAB_CSS}{_tyre_icon_css()}{charts.CSS}{team_css}</style></head><body><main>
 {_top(current="lab", root="../")}
 <h1>Race lab</h1>
 <p class="claim">A lap-by-lap race simulator built from public lap data. It is separate from the podium predictions: those come from a model trained on results, this one replays the race.</p>

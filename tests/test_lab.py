@@ -145,3 +145,23 @@ def test_lab_page_works_with_and_without_the_forecasts():
     assert "AAA</span> has clinched the drivers' title" in page and "Drivers' title decided" not in page
     worse = dict(ev, brier_difference={**ev["brier_difference"], "simulator minus blend": {"diff": 0.01, "low": 0.005, "high": 0.02}})
     assert ">Worse<" in report.render(worse)
+
+
+def test_tyre_names_get_their_compound_colour_class():
+    import pytest
+    from f1pred.lab.report import TYRE_COLOURS, tyre
+    assert tyre("SOFT") == '<span class="ty ty-soft">Soft</span>'
+    assert tyre("hard", "hards") == '<span class="ty ty-hard">hards</span>'
+    assert set(TYRE_COLOURS) == {"SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"}
+    with pytest.raises(ValueError):
+        tyre("HYPERSOFT")
+
+
+def test_tyre_icons_are_embedded_and_missing_ones_keep_the_dot(tmp_path, monkeypatch):
+    from f1pred.lab import report as lab_report
+    (tmp_path / "assets" / "tyres").mkdir(parents=True)
+    (tmp_path / "assets" / "tyres" / "soft.webp").write_bytes(b"icon")
+    monkeypatch.setattr(lab_report, "REPORTS", tmp_path)
+    css = lab_report._tyre_icon_css()
+    assert ".ty-soft::before" in css and "data:image/webp;base64,aWNvbg==" in css
+    assert ".ty-hard::before" not in css
