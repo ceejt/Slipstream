@@ -1,12 +1,12 @@
 {
   "year": 2026,
-  "round": 21,
-  "event": "Las Vegas Grand Prix",
-  "date": "2026-11-22",
-  "quali_date": "2026-11-21",
+  "round": 22,
+  "event": "Qatar Grand Prix",
+  "date": "2026-11-29",
+  "quali_date": "2026-11-28",
   "forecast": {
-    "rain_chance": 4,
+    "rain_chance": 2,
     "rain_mm": 0.0,
-    "asof": "2026-11-09"
+    "asof": "2026-11-21"
   }
 }
