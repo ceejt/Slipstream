@@ -223,6 +223,7 @@ color:var(--text);text-align:left;padding:8px 0;min-height:44px;cursor:pointer;f
 .tables{margin:16px 0 0}
 .tables summary{cursor:pointer;color:var(--muted);font:600 14px/20px var(--body);padding:12px 0;min-height:44px}
 .tables summary:hover{color:var(--text)}
+.tables caption{padding:0 0 12px}.tables .scroll+.scroll{margin-top:40px}
 .note{font:400 14px/20px var(--body);color:var(--muted);margin:16px 0 0;max-width:54ch}
 .verdict p{max-width:54ch;text-wrap:pretty}
 .note b{color:var(--text)}
