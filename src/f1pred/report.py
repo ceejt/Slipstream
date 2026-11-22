@@ -144,8 +144,9 @@ display:flex;flex-direction:column;justify-content:center;gap:2px}
 .mark{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:4px;
 font:500 12px/18px var(--display);letter-spacing:.5px;text-transform:uppercase}
 .mark.miss{border-style:dashed}
-td .mark.miss{border-color:var(--muted);color:var(--muted)}
-td .mark{border-color:var(--text)}
+.outcome .mark,td .mark{background:#15803D;color:#FFFFFF;border:0;padding:1px 7px}
+.outcome .mark{box-shadow:0 0 0 1px rgba(255,255,255,.55)}
+.outcome .mark.miss,td .mark.miss{background:#C40500}
 table{width:100%;border-collapse:collapse}
 .scroll{overflow-x:auto;scrollbar-color:var(--rule) transparent}
 th,td{padding:12px 6px;text-align:left;border-bottom:1px solid var(--rule)}
