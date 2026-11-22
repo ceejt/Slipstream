@@ -224,9 +224,10 @@ transition:transform .2s cubic-bezier(.4,0,.2,1)}
 .method li{margin-bottom:8px}
 .method .scroll{margin:16px 0;max-width:none}
 .method caption{caption-side:top;text-align:left;color:var(--muted);font:600 14px/20px var(--body);padding-bottom:8px}
+.method .lede{font:400 20px/28px var(--body);color:var(--text);text-wrap:balance;margin:0 0 16px}
 @media(min-width:735px){.mrow{display:grid;grid-template-columns:180px minmax(0,68ch);gap:0 32px;
 border-top:1px solid var(--rule);margin-top:24px;padding-top:24px}
-.method h3{margin:0}.mtext>:last-child{margin-bottom:0}}
+.method h3{margin:0}.mtext>:last-child{margin-bottom:0}.method .mhead .lede{margin:16px 0 0}}
 .insights{margin:16px 0 48px;padding:0 0 0 20px}
 .insights li{font:400 16px/24px var(--body);margin:0 0 8px;break-inside:avoid}
 @media(min-width:735px){.insights{column-count:2;column-gap:40px}}
@@ -624,7 +625,7 @@ MODEL_TEXT = {
 }
 REASONS_TEXT = {
     "xgboost": "They come from a method called SHAP.",
-    "blend": "They come from a method called SHAP, applied to the decision-tree half of the model. The other half is a simple formula, so the reasons describe part of the number, not all of it.",
+    "blend": "They come from a method called SHAP, and only from the decision trees. The simple formula's half of the average is not broken down, so the reasons explain part of the number, not every point of it.",
 }
 
 
@@ -645,9 +646,17 @@ def _method_html(ev, model="xgboost", has_win=False):
                     "This number is usually more useful than the podium chance for telling the leader from the rest. "
                     "The order of the podium is a different matter: the model is no better at it than the grid order, "
                     "so the three picks are ordered by podium chance and the order should be read with care.</p>")
+    checked = {True: "Slightly better than guessing based on the starting grid.",
+               False: "Not yet better than guessing based on the starting grid."}.get(beat, "Tested only on races it had never seen.")
+    turns = "Two models, averaged into one chance." if model == "blend" else "One model turns the facts into a chance."
+    reasons = ("SHAP explains the decision trees, not the simple formula." if model == "blend"
+               else "SHAP shows which facts mattered most.")
+
+    def head(title, lede):
+        return f'<div class="mhead"><h3>{title}</h3><p class="lede">“{lede}”</p></div>'
     return f"""<section class="method" aria-labelledby="how">
 <h2 class="label" id="how">How it works</h2>
-<div class="mrow"><h3>What the model looks at</h3><div class="mtext">
+<div class="mrow">{head("What the model looks at", "Only facts known before the race starts.")}<div class="mtext">
 <p>For every driver in a race, the model gets a short list of facts that were known before the start:</p>
 <ul>
 <li>Where the driver starts, where they qualified, and how far they were from the pole time.</li>
@@ -657,23 +666,23 @@ def _method_html(ev, model="xgboost", has_win=False):
 </ul>
 <p>Nothing from the race itself is ever used. That is the one rule the project is built around: a prediction for a race only uses what was known before that race.</p>
 </div></div>
-<div class="mrow"><h3>How it turns facts into a percentage</h3><div class="mtext">
+<div class="mrow">{head("How it turns facts into a percentage", turns)}<div class="mtext">
 {_flow(model)}
 {MODEL_TEXT.get(model, MODEL_TEXT["xgboost"])}
 <p>To learn, the model looks at every earlier race. For each driver it sees the facts above and whether they finished on the podium (the top three). Over time it learns which combinations of facts usually lead to a podium. For a new race, it gives each driver a number from 0% to 100%: how likely that driver is to finish in the top three, judging by how similar drivers did before. It is not a simulation of the race.</p>
 <p>Each driver gets their own number, and a podium has three places, so across the whole field the numbers add up to around 300%, not 100%. A driver at 80% is not "80% to win". It means the model thinks a podium is very likely.</p>
 {win_text}</div></div>
-<div class="mrow"><h3>Why each pick has reasons</h3><div class="mtext">
+<div class="mrow">{head("Why each pick has reasons", reasons)}<div class="mtext">
 <p>Under each of the three picks you see the three facts that moved the number most. {REASONS_TEXT.get(model, REASONS_TEXT["xgboost"])} A plus sign and a filled bar mean the fact raised the driver's chance. A minus sign and an outlined bar mean it lowered it. The strongest comes first, and the bar shows how hard each fact pushed compared with the strongest.</p>
 </div></div>
-<div class="mrow"><h3>How it is checked</h3><div class="mtext">
+<div class="mrow">{head("How it is checked", checked)}<div class="mtext">
 <p>A model can look clever by accident if it has already seen the answers. So every race is tested like this: pretend it is the day before that race, teach the model only with earlier races, make the predictions, then compare them with what really happened. This is called walk-forward testing, and it is repeated for every race after the first five.</p>
 <p>The model is also compared with two simple guesses. One says the first three on the grid will finish on the podium. The other is a basic formula that only looks at starting position. If the model cannot beat these, it has not added anything useful.</p>
 {_compare_chart(ev, model)}
 {_method_table(ev, model)}
 <p>Top-3 overlap is the share of the real podium drivers that were in the model's top three picks. Exact podium counts the races where all three picks were right. Brier score and log loss judge the percentages themselves. For both of those, lower is better.</p>
 {verdict}</div></div>
-<div class="mrow"><h3>What it does not know</h3><div class="mtext">
+<div class="mrow">{head("What it does not know", "Blind to weather, tyres and incidents in the race.")}<div class="mtext">
 <p>It only knows about grid penalties if the official starting grid was entered before the race. Otherwise it assumes the qualifying order. It also knows nothing about weather, tyre choices, safety cars or car upgrades, and it has only a few seasons of results, so some circuits have little history. The percentages are raw model output. In the tests above they came out close to the real rates, with the model a little cautious: drivers rated above 35% reached the podium slightly more often than predicted, and drivers rated below 10% slightly less often. A "70%" is still a likelihood, not a promise.</p>
 <p>Treat the numbers as a ranking of who looks strongest, not as a promise. Results and qualifying come from the Jolpica F1 API.</p>
 </div></div>

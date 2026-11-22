@@ -304,3 +304,11 @@ def test_pick_cards_show_a_driver_photo_only_when_one_was_added(tmp_path, monkey
               '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>')
     assert credit in page and credit in render_index([p]) and "B. Person" not in page
     assert 'class="photos"' not in render(_payload(drivers=[_driver("NOR", "McLaren", 0.6)]))
+
+
+def test_how_it_works_rows_have_a_one_line_headline_that_follows_the_evaluation():
+    page = render(_payload(drivers=[_driver("VER", "Red Bull", 0.8)]))
+    assert page.count('<p class="lede">') == 5
+    assert '<h3>What the model looks at</h3><p class="lede">“Only facts known before the race starts.”</p>' in page
+    assert '<p class="lede">“One model turns the facts into a chance.”</p>' in page
+    assert '<p class="lede">“Tested only on races it had never seen.”</p>' in page  # no evaluation saved
